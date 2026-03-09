@@ -1,4 +1,5 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata, Viewport } from 'next';
+import StampsProvider from '../components/StampsProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -6,7 +7,7 @@ export const metadata: Metadata = {
   description: '你的随身印章收集图鉴，支持风景印、御朱印、车站印打卡。',
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased overflow-hidden">
-        {children}
+        <StampsProvider>{children}</StampsProvider>
       </body>
     </html>
   );
