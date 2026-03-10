@@ -308,7 +308,7 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
           spiderfyOnMaxZoom={false}
           iconCreateFunction={createClusterIcon}
           disableClusteringAtZoom={13}
-          maxClusterRadius={(zoom) => {
+          maxClusterRadius={(zoom: number) => {
             if (zoom <= 6) return 170;
             if (zoom <= 8) return 140;
             if (zoom <= 10) return 100;
@@ -444,4 +444,5 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
     </div>
   );
 }
+
 
