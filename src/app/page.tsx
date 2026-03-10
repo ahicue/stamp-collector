@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Grid, BookOpen, Compass, BarChart2 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import GalleryComponent from "../components/GalleryComponent";
@@ -14,7 +14,7 @@ const DynamicMap = dynamic(() => import('../components/MapComponent'), {
     <div className="absolute inset-0 flex items-center justify-center bg-slate-200">
       <p className="text-slate-500 font-medium flex items-center gap-2">
         <Compass className="w-5 h-5 animate-pulse" />
-        姝ｅ湪鍔犺浇鍦板浘...
+        正在加载地图...
       </p>
     </div>
   )
@@ -26,6 +26,13 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("map");
   const [focusedStamp, setFocusedStamp] = useState<Stamp | null>(null);
   const [selectedStamp, setSelectedStamp] = useState<Stamp | null>(null);
+  const [hasOpenedGallery, setHasOpenedGallery] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'gallery') {
+      setHasOpenedGallery(true);
+    }
+  }, [activeTab]);
 
   const handleStampClick = (stamp: Stamp) => {
     setSelectedStamp(stamp);
@@ -38,7 +45,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
-      {/* Header */}
       <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between z-20">
         <div className="flex items-center gap-2">
           <BookOpen className="w-6 h-6 text-blue-600" />
@@ -46,8 +52,7 @@ export default function Home() {
             stamptracker
           </h1>
         </div>
-        
-        {/* View Toggles (Desktop/Tablet) */}
+
         <div className="hidden sm:flex bg-slate-100 p-1 rounded-lg gap-0.5">
           <button
             onClick={() => setActiveTab("map")}
@@ -58,7 +63,7 @@ export default function Home() {
             }`}
           >
             <Compass className="w-4 h-4" />
-            鎺㈢储鍦板洺
+            探索地图
           </button>
           <button
             onClick={() => setActiveTab("gallery")}
@@ -69,7 +74,7 @@ export default function Home() {
             }`}
           >
             <Grid className="w-4 h-4" />
-            鍗扮珷鍥抽憫
+            印章图鉴
           </button>
           <button
             onClick={() => setActiveTab("stats")}
@@ -80,14 +85,12 @@ export default function Home() {
             }`}
           >
             <BarChart2 className="w-4 h-4" />
-            绲辫▓
+            统计
           </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 relative overflow-hidden">
-        {/* Map - always mounted, hidden when not active */}
+      <main className="flex-1 relative overflow-hidden min-h-0">
         <div className={`absolute inset-0 bg-slate-200 ${activeTab === 'map' ? '' : 'invisible pointer-events-none'}`}>
           <DynamicMap
             focusedStamp={focusedStamp}
@@ -96,9 +99,10 @@ export default function Home() {
           />
         </div>
 
-        {activeTab === 'gallery' && (
-          <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50">
+        {hasOpenedGallery && (
+          <div className={`absolute inset-0 min-h-0 p-4 sm:p-6 lg:p-8 bg-slate-50 ${activeTab === 'gallery' ? '' : 'invisible pointer-events-none'}`}>
             <GalleryComponent
+              isActive={activeTab === 'gallery'}
               onStampClick={handleStampClick}
               onMapFocus={handleMapFocus}
             />
@@ -112,7 +116,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* Bottom Navigation (Mobile) */}
       <nav className="sm:hidden bg-white border-t border-slate-200 flex justify-around pb-safe z-20">
         <button
           onClick={() => setActiveTab("map")}
@@ -121,7 +124,7 @@ export default function Home() {
           }`}
         >
           <Compass className="w-6 h-6" />
-          <span className="text-[10px] font-medium">鎺㈢储</span>
+          <span className="text-[10px] font-medium">探索</span>
         </button>
         <button
           onClick={() => setActiveTab("gallery")}
@@ -130,7 +133,7 @@ export default function Home() {
           }`}
         >
           <Grid className="w-6 h-6" />
-          <span className="text-[10px] font-medium">鍥抽憫</span>
+          <span className="text-[10px] font-medium">图鉴</span>
         </button>
         <button
           onClick={() => setActiveTab("stats")}
@@ -139,11 +142,10 @@ export default function Home() {
           }`}
         >
           <BarChart2 className="w-6 h-6" />
-          <span className="text-[10px] font-medium">绲辫▓</span>
+          <span className="text-[10px] font-medium">统计</span>
         </button>
       </nav>
 
-      {/* Stamp Detail Modal */}
       <StampDetailModal stamp={selectedStamp} onClose={() => setSelectedStamp(null)} />
     </div>
   );

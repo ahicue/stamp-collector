@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useRef } from 'react';
-import { CheckCircle2, ExternalLink, MapPin, Stamp, X } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ExternalLink, Landmark, MapPin, Stamp, Tag, X } from 'lucide-react';
 import type { Stamp as StampType } from '../lib/data';
 import { useStamps } from '../lib/useStamps';
 
@@ -16,6 +16,13 @@ const TYPE_CONFIG = {
   scenic: { label: '风景印', textColor: 'text-red-700', bg: 'bg-red-50' },
   goshuin: { label: '御朱印', textColor: 'text-purple-700', bg: 'bg-purple-50' },
 };
+
+function getGoshuinPlaceLabel(stamp: StampType) {
+  if (stamp.goshuinPlaceType === 'shrine') return '神社';
+  if (stamp.goshuinPlaceType === 'temple') return '寺庙';
+  if (stamp.goshuinPlaceType === 'other') return '未分类';
+  return null;
+}
 
 export default function StampDetailModal({ stamp, onClose }: Props) {
   const { isCollected, checkInStamp } = useStamps();
@@ -41,6 +48,7 @@ export default function StampDetailModal({ stamp, onClose }: Props) {
 
   const collected = isCollected(stamp.id);
   const typeConf = TYPE_CONFIG[stamp.type];
+  const goshuinPlaceLabel = stamp.type === 'goshuin' ? getGoshuinPlaceLabel(stamp) : null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === backdropRef.current) onClose();
@@ -92,12 +100,56 @@ export default function StampDetailModal({ stamp, onClose }: Props) {
                 {stamp.prefecture}
               </span>
             )}
+            {goshuinPlaceLabel && (
+              <span className="text-xs font-medium px-3 py-1 rounded-full bg-purple-100 text-purple-700">
+                {goshuinPlaceLabel}
+              </span>
+            )}
+            {stamp.goshuinSect && (
+              <span className="text-xs font-medium px-3 py-1 rounded-full bg-amber-50 text-amber-700">
+                {stamp.goshuinSect}
+              </span>
+            )}
+            {stamp.type === 'goshuin' && stamp.isLimited !== undefined && (
+              <span className={`text-xs font-medium px-3 py-1 rounded-full ${stamp.isLimited ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                {stamp.isLimited ? '限定御朱印' : '非限定'}
+              </span>
+            )}
           </div>
 
           <div className="flex items-start gap-2 text-slate-500">
             <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-slate-400" />
             <p className="text-sm leading-relaxed">{stamp.address}</p>
           </div>
+
+          {stamp.type === 'goshuin' && (goshuinPlaceLabel || stamp.goshuinSect || stamp.isLimited !== undefined || stamp.sourceUpdatedAt) && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+              {goshuinPlaceLabel && (
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Landmark className="w-4 h-4 text-slate-400" />
+                  <span>{goshuinPlaceLabel}</span>
+                </div>
+              )}
+              {stamp.goshuinSect && (
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Tag className="w-4 h-4 text-slate-400" />
+                  <span>宗派 {stamp.goshuinSect}</span>
+                </div>
+              )}
+              {stamp.isLimited !== undefined && (
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <Tag className="w-4 h-4 text-slate-400" />
+                  <span>{stamp.isLimited ? '限定御朱印あり' : '限定信息なし'}</span>
+                </div>
+              )}
+              {stamp.sourceUpdatedAt && (
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <CalendarDays className="w-4 h-4 text-slate-400" />
+                  <span>来源更新时间 {stamp.sourceUpdatedAt}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           <p className="text-sm text-slate-600 leading-relaxed">{stamp.description}</p>
 
@@ -123,7 +175,7 @@ export default function StampDetailModal({ stamp, onClose }: Props) {
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
-                打开日本邮政详情
+                打开来源详情
               </a>
             )}
           </div>

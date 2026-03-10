@@ -9,7 +9,7 @@ import { CheckCircle, Filter } from 'lucide-react';
 import { Stamp, StampType } from '../lib/data';
 import { useStamps } from '../lib/useStamps';
 import { formatDistance, getDistanceKm } from '../lib/geo';
-import { ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
+import { ALL_GOSHUIN_SECTS, ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
 
 const BASE_COLORS: Record<StampType, string> = {
   scenic: '#ef4444',
@@ -22,7 +22,18 @@ const clusterIconCache = new Map<string, L.DivIcon>();
 
 type ClusterLike = { getChildCount: () => number };
 
-function createCustomIcon(color: string, isCollected = false) {
+const TYPE_GLYPH: Record<StampType, string> = {
+  station:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"></rect><path d="M8 21h8"></path><path d="M8 17v4"></path><path d="M16 17v4"></path><path d="M7 7h10"></path><path d="M7 11h3"></path><path d="M14 11h3"></path></svg>',
+  scenic:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16v9H4z"></path><path d="M8 10V6h8v4"></path><path d="M10 14h4"></path></svg>',
+  goshuin:
+    '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16"></path><path d="M7 8v3"></path><path d="M17 8v3"></path><path d="M6 14h12"></path><path d="M8 14v6"></path><path d="M16 14v6"></path></svg>',
+};
+
+function createCustomIcon(type: StampType, color: string, isCollected = false) {
+  const glyph = TYPE_GLYPH[type];
+
   return L.divIcon({
     className: 'stamp-marker-icon',
     html: `
@@ -33,10 +44,7 @@ function createCustomIcon(color: string, isCollected = false) {
         box-shadow: 0 2px 4px rgba(0,0,0,0.25);
         display: flex; align-items: center; justify-content: center; color: white;
       ">
-        ${isCollected
-          ? '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
-          : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle></svg>'
-        }
+        ${glyph}
       </div>
     `,
     iconSize: [30, 30],
@@ -50,7 +58,7 @@ function getMarkerIcon(type: StampType, isCollected: boolean): L.DivIcon {
   const cached = markerIconCache.get(key);
   if (cached) return cached;
 
-  const icon = createCustomIcon(BASE_COLORS[type], isCollected);
+  const icon = createCustomIcon(type, BASE_COLORS[type], isCollected);
   markerIconCache.set(key, icon);
   return icon;
 }
@@ -147,6 +155,13 @@ const userIcon = L.divIcon({
   iconAnchor: [12, 12],
 });
 
+function getGoshuinPlaceLabel(stamp: Stamp) {
+  if (stamp.goshuinPlaceType === 'shrine') return '神社';
+  if (stamp.goshuinPlaceType === 'temple') return '寺庙';
+  if (stamp.goshuinPlaceType === 'other') return '未分类';
+  return null;
+}
+
 function MapController({ focusedStamp, onFocusConsumed, userLocation }: {
   focusedStamp: Stamp | null;
   onFocusConsumed: () => void;
@@ -236,15 +251,25 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | StampType>('all');
   const [activePrefFilter, setActivePrefFilter] = useState('all');
+  const [activeGoshuinPlaceFilter, setActiveGoshuinPlaceFilter] = useState<'all' | 'shrine' | 'temple' | 'other'>('all');
+  const [activeGoshuinSectFilter, setActiveGoshuinSectFilter] = useState('all');
   const { collectedIds, checkInStamp } = useStamps();
 
   const filteredStamps = useMemo(() => {
     return ALL_STAMPS.filter((stamp) => {
       const matchesType = activeTypeFilter === 'all' || stamp.type === activeTypeFilter;
       const matchesPref = activePrefFilter === 'all' || stamp.prefecture === activePrefFilter;
-      return matchesType && matchesPref;
+      const matchesGoshuinPlace =
+        activeGoshuinPlaceFilter === 'all'
+          ? true
+          : stamp.type === 'goshuin' && (stamp.goshuinPlaceType ?? 'other') === activeGoshuinPlaceFilter;
+      const matchesGoshuinSect =
+        activeGoshuinSectFilter === 'all'
+          ? true
+          : stamp.type === 'goshuin' && (stamp.goshuinSect ?? '') === activeGoshuinSectFilter;
+      return matchesType && matchesPref && matchesGoshuinPlace && matchesGoshuinSect;
     });
-  }, [activePrefFilter, activeTypeFilter]);
+  }, [activeGoshuinPlaceFilter, activeGoshuinSectFilter, activePrefFilter, activeTypeFilter]);
 
   const markerItems = useMemo(() => {
     return filteredStamps.map((stamp) => {
@@ -260,6 +285,13 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
   const handleLocate = useCallback((pos: [number, number]) => {
     setUserLocation(pos);
   }, []);
+
+  const resetFilters = () => {
+    setActiveTypeFilter('all');
+    setActivePrefFilter('all');
+    setActiveGoshuinPlaceFilter('all');
+    setActiveGoshuinSectFilter('all');
+  };
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
@@ -307,11 +339,13 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
           zoomToBoundsOnClick
           spiderfyOnMaxZoom={false}
           iconCreateFunction={createClusterIcon}
-          disableClusteringAtZoom={13}
+          disableClusteringAtZoom={15}
           maxClusterRadius={(zoom: number) => {
-            if (zoom <= 6) return 170;
-            if (zoom <= 8) return 140;
-            if (zoom <= 10) return 100;
+            if (zoom <= 5) return 240;
+            if (zoom <= 7) return 200;
+            if (zoom <= 9) return 160;
+            if (zoom <= 11) return 120;
+            if (zoom <= 13) return 90;
             return 70;
           }}
         >
@@ -319,6 +353,7 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
             const distText = userLocation
               ? formatDistance(getDistanceKm(userLocation[0], userLocation[1], stamp.lat, stamp.lng))
               : null;
+            const goshuinPlaceLabel = stamp.type === 'goshuin' ? getGoshuinPlaceLabel(stamp) : null;
 
             return (
               <Marker key={stamp.id} position={[stamp.lat, stamp.lng]} icon={icon}>
@@ -340,9 +375,15 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
                         {collected && <CheckCircle className="w-4 h-4 text-blue-500 shrink-0" />}
                       </div>
 
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5">
                         {stamp.prefecture && (
                           <p className="text-[10px] text-blue-500 font-medium">{stamp.prefecture}</p>
+                        )}
+                        {goshuinPlaceLabel && (
+                          <p className="text-[10px] text-purple-600 font-medium">{goshuinPlaceLabel}</p>
+                        )}
+                        {stamp.goshuinSect && (
+                          <p className="text-[10px] text-amber-600 font-medium">{stamp.goshuinSect}</p>
                         )}
                         {distText && (
                           <p className="text-[10px] text-slate-400 font-medium">{distText}</p>
@@ -388,7 +429,7 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
         </MarkerClusterGroup>
       </MapContainer>
 
-      <div className="absolute top-3 right-3 z-[1100] w-60 max-w-[calc(100%-24px)] rounded-xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-lg">
+      <div className="absolute top-3 right-3 z-[1100] w-72 max-w-[calc(100%-24px)] rounded-xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-lg">
         <div className="flex items-center gap-2 text-slate-700 mb-2">
           <Filter className="w-4 h-4" />
           <h3 className="text-sm font-semibold">地图筛选</h3>
@@ -424,15 +465,50 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
               ))}
             </select>
           </div>
+
+          <div>
+            <label className="text-xs text-slate-500">御朱印场所</label>
+            <select
+              value={activeGoshuinPlaceFilter}
+              onChange={(e) => {
+                setActiveGoshuinPlaceFilter(e.target.value as 'all' | 'shrine' | 'temple' | 'other');
+                if (e.target.value !== 'all' && activeTypeFilter === 'all') {
+                  setActiveTypeFilter('goshuin');
+                }
+              }}
+              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm text-slate-700"
+            >
+              <option value="all">全部</option>
+              <option value="shrine">神社</option>
+              <option value="temple">寺庙</option>
+              <option value="other">未分类</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-slate-500">宗派</label>
+            <select
+              value={activeGoshuinSectFilter}
+              onChange={(e) => {
+                setActiveGoshuinSectFilter(e.target.value);
+                if (e.target.value !== 'all' && activeTypeFilter === 'all') {
+                  setActiveTypeFilter('goshuin');
+                }
+              }}
+              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm text-slate-700"
+            >
+              <option value="all">全部宗派</option>
+              {ALL_GOSHUIN_SECTS.map((sect) => (
+                <option key={sect} value={sect}>{sect}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="mt-3 flex items-center justify-between">
           <p className="text-xs text-slate-500">显示 {filteredStamps.length} / {ALL_STAMPS.length}</p>
           <button
-            onClick={() => {
-              setActiveTypeFilter('all');
-              setActivePrefFilter('all');
-            }}
+            onClick={resetFilters}
             className="text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
             重置
@@ -444,5 +520,3 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
     </div>
   );
 }
-
-

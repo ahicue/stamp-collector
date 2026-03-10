@@ -1,4 +1,5 @@
 ﻿export type StampType = 'scenic' | 'station' | 'goshuin';
+export type GoshuinPlaceType = 'shrine' | 'temple' | 'other';
 
 export interface Stamp {
   id: string;
@@ -12,6 +13,10 @@ export interface Stamp {
   address: string;
   detailUrl?: string;
   startYear?: number;
+  isLimited?: boolean;
+  sourceUpdatedAt?: string;
+  goshuinPlaceType?: GoshuinPlaceType;
+  goshuinSect?: string;
 }
 
 export const INITIAL_STAMPS: Stamp[] = [
@@ -47,6 +52,7 @@ export const INITIAL_STAMPS: Stamp[] = [
     lng: 139.767936,
     imageUrl: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=400&q=80',
     address: '東京都千代田区外神田2-16-2',
+    goshuinPlaceType: 'shrine',
   },
   {
     id: 'ueno-station',
@@ -67,8 +73,9 @@ export const INITIAL_STAMPS: Stamp[] = [
     description: '明治神宫授与所的御朱印庄重典雅。',
     lat: 35.676397,
     lng: 139.699325,
-    imageUrl: 'https://images.unsplash.com/photo-1583400261-7c1e0e1ac2e2?w=400&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=400&q=80',
     address: '東京都渋谷区代々木神園町1-1',
+    goshuinPlaceType: 'shrine',
   },
   {
     id: 'shinjuku-station',
@@ -102,6 +109,8 @@ export const INITIAL_STAMPS: Stamp[] = [
     lng: 139.7966,
     imageUrl: 'https://images.unsplash.com/photo-1513407030348-c983a97b98d8?w=400&q=80',
     address: '東京都台東区浅草2-3-1',
+    goshuinPlaceType: 'temple',
+    goshuinSect: '聖観音宗',
   },
   {
     id: 'shiba-post',
@@ -146,6 +155,7 @@ export const INITIAL_STAMPS: Stamp[] = [
     lng: 135.7726,
     imageUrl: 'https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=400&q=80',
     address: '京都府京都市伏見区深草薮之内町68',
+    goshuinPlaceType: 'shrine',
   },
   {
     id: 'osaka-castle-post',
@@ -168,6 +178,8 @@ export const INITIAL_STAMPS: Stamp[] = [
     lng: 135.8398,
     imageUrl: 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&q=80',
     address: '奈良県奈良市雑司町406-1',
+    goshuinPlaceType: 'temple',
+    goshuinSect: '華厳宗',
   },
   {
     id: 'kobe-station',
@@ -190,5 +202,7 @@ export const INITIAL_STAMPS: Stamp[] = [
     lng: 135.785,
     imageUrl: 'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=400&q=80',
     address: '京都府京都市東山区清水1-294',
+    goshuinPlaceType: 'temple',
+    goshuinSect: '北法相宗',
   },
 ];

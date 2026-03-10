@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Award, BarChart2, Loader2, MapPin, Stamp as StampIcon } from 'lucide-react';
 import { useStamps } from '../lib/useStamps';
-import { PREFECTURE_TOTALS, STAMP_BY_ID, STAMP_COUNT, TYPE_TOTALS } from '../lib/stamps';
+import { GOSHUIN_PLACE_TOTALS, PREFECTURE_TOTALS, STAMP_BY_ID, STAMP_COUNT, TYPE_TOTALS } from '../lib/stamps';
 
 type PrefStats = {
   prefecture: string;
@@ -20,10 +20,25 @@ type TypeStats = {
   bg: string;
 };
 
+type GoshuinPlaceStats = {
+  key: 'shrine' | 'temple' | 'other';
+  label: string;
+  total: number;
+  collected: number;
+  color: string;
+  bg: string;
+};
+
 const TYPE_BASE: Omit<TypeStats, 'total' | 'collected'>[] = [
   { type: 'scenic', label: '风景印', color: 'bg-red-500', bg: 'bg-red-50' },
   { type: 'station', label: '车站印', color: 'bg-emerald-500', bg: 'bg-emerald-50' },
   { type: 'goshuin', label: '御朱印', color: 'bg-purple-500', bg: 'bg-purple-50' },
+];
+
+const GOSHUIN_PLACE_BASE: Omit<GoshuinPlaceStats, 'total' | 'collected'>[] = [
+  { key: 'shrine', label: '神社', color: 'bg-fuchsia-500', bg: 'bg-fuchsia-50' },
+  { key: 'temple', label: '寺庙', color: 'bg-amber-500', bg: 'bg-amber-50' },
+  { key: 'other', label: '未分类', color: 'bg-slate-500', bg: 'bg-slate-50' },
 ];
 
 export default function StatsComponent() {
@@ -65,6 +80,27 @@ export default function StatsComponent() {
       ...item,
       total: TYPE_TOTALS[item.type],
       collected: collectedByType[item.type],
+    }));
+  }, [collectedIds]);
+
+  const goshuinPlaceStats = useMemo<GoshuinPlaceStats[]>(() => {
+    const collectedByPlace: Record<'shrine' | 'temple' | 'other', number> = {
+      shrine: 0,
+      temple: 0,
+      other: 0,
+    };
+
+    for (const stampId of collectedIds) {
+      const stamp = STAMP_BY_ID.get(stampId);
+      if (!stamp || stamp.type !== 'goshuin') continue;
+      const place = stamp.goshuinPlaceType ?? 'other';
+      collectedByPlace[place] += 1;
+    }
+
+    return GOSHUIN_PLACE_BASE.map((item) => ({
+      ...item,
+      total: GOSHUIN_PLACE_TOTALS[item.key],
+      collected: collectedByPlace[item.key],
     }));
   }, [collectedIds]);
 
@@ -120,6 +156,31 @@ export default function StatsComponent() {
             const pct = t.total > 0 ? (t.collected / t.total) * 100 : 0;
             return (
               <div key={t.type} className={`${t.bg} rounded-xl p-4 text-center`}>
+                <p className="text-2xl font-black text-slate-800">{t.collected}</p>
+                <p className="text-xs text-slate-500 mt-0.5">/ {t.total}</p>
+                <p className="text-xs font-semibold text-slate-600 mt-2">{t.label}</p>
+                <div className="w-full bg-white/60 rounded-full h-1.5 mt-2">
+                  <div
+                    className={`h-1.5 rounded-full ${t.color} transition-all duration-700`}
+                    style={{ width: `${Math.max(pct, t.collected > 0 ? 5 : 0)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+          <StampIcon className="w-4 h-4 text-purple-600" /> 御朱印拆分
+        </h3>
+
+        <div className="grid grid-cols-3 gap-3">
+          {goshuinPlaceStats.map((t) => {
+            const pct = t.total > 0 ? (t.collected / t.total) * 100 : 0;
+            return (
+              <div key={t.key} className={`${t.bg} rounded-xl p-4 text-center`}>
                 <p className="text-2xl font-black text-slate-800">{t.collected}</p>
                 <p className="text-xs text-slate-500 mt-0.5">/ {t.total}</p>
                 <p className="text-xs font-semibold text-slate-600 mt-2">{t.label}</p>
