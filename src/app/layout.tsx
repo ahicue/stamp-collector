@@ -3,7 +3,7 @@ import StampsProvider from '../components/StampsProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Stamp Collector - 风景印打卡',
+  title: 'stamptracker - 风景印打卡',
   description: '你的随身印章收集图鉴，支持风景印、御朱印、车站印打卡。',
 };
 
@@ -27,3 +27,4 @@ export default function RootLayout({
     </html>
   );
 }
+

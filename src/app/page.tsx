@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Grid, BookOpen, Compass, BarChart2 } from "lucide-react";
@@ -14,7 +14,7 @@ const DynamicMap = dynamic(() => import('../components/MapComponent'), {
     <div className="absolute inset-0 flex items-center justify-center bg-slate-200">
       <p className="text-slate-500 font-medium flex items-center gap-2">
         <Compass className="w-5 h-5 animate-pulse" />
-        正在加载地图...
+        姝ｅ湪鍔犺浇鍦板浘...
       </p>
     </div>
   )
@@ -43,7 +43,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <BookOpen className="w-6 h-6 text-blue-600" />
           <h1 className="font-bold text-lg text-slate-800 tracking-tight">
-            Stamp Collector
+            stamptracker
           </h1>
         </div>
         
@@ -58,7 +58,7 @@ export default function Home() {
             }`}
           >
             <Compass className="w-4 h-4" />
-            探索地図
+            鎺㈢储鍦板洺
           </button>
           <button
             onClick={() => setActiveTab("gallery")}
@@ -69,7 +69,7 @@ export default function Home() {
             }`}
           >
             <Grid className="w-4 h-4" />
-            印章図鑑
+            鍗扮珷鍥抽憫
           </button>
           <button
             onClick={() => setActiveTab("stats")}
@@ -80,7 +80,7 @@ export default function Home() {
             }`}
           >
             <BarChart2 className="w-4 h-4" />
-            統計
+            绲辫▓
           </button>
         </div>
       </header>
@@ -121,7 +121,7 @@ export default function Home() {
           }`}
         >
           <Compass className="w-6 h-6" />
-          <span className="text-[10px] font-medium">探索</span>
+          <span className="text-[10px] font-medium">鎺㈢储</span>
         </button>
         <button
           onClick={() => setActiveTab("gallery")}
@@ -130,7 +130,7 @@ export default function Home() {
           }`}
         >
           <Grid className="w-6 h-6" />
-          <span className="text-[10px] font-medium">図鑑</span>
+          <span className="text-[10px] font-medium">鍥抽憫</span>
         </button>
         <button
           onClick={() => setActiveTab("stats")}
@@ -139,7 +139,7 @@ export default function Home() {
           }`}
         >
           <BarChart2 className="w-6 h-6" />
-          <span className="text-[10px] font-medium">統計</span>
+          <span className="text-[10px] font-medium">绲辫▓</span>
         </button>
       </nav>
 
@@ -148,3 +148,4 @@ export default function Home() {
     </div>
   );
 }
+
