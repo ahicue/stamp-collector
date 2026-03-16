@@ -105,11 +105,6 @@ export default function StampDetailModal({ stamp, onClose }: Props) {
                 {goshuinPlaceLabel}
               </span>
             )}
-            {stamp.goshuinSect && (
-              <span className="text-xs font-medium px-3 py-1 rounded-full bg-amber-50 text-amber-700">
-                {stamp.goshuinSect}
-              </span>
-            )}
             {stamp.type === 'goshuin' && stamp.isLimited !== undefined && (
               <span className={`text-xs font-medium px-3 py-1 rounded-full ${stamp.isLimited ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
                 {stamp.isLimited ? '限定御朱印' : '非限定'}
@@ -122,18 +117,12 @@ export default function StampDetailModal({ stamp, onClose }: Props) {
             <p className="text-sm leading-relaxed">{stamp.address}</p>
           </div>
 
-          {stamp.type === 'goshuin' && (goshuinPlaceLabel || stamp.goshuinSect || stamp.isLimited !== undefined || stamp.sourceUpdatedAt) && (
+          {stamp.type === 'goshuin' && (goshuinPlaceLabel || stamp.isLimited !== undefined || stamp.sourceUpdatedAt) && (
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
               {goshuinPlaceLabel && (
                 <div className="flex items-center gap-2 text-sm text-slate-600">
                   <Landmark className="w-4 h-4 text-slate-400" />
                   <span>{goshuinPlaceLabel}</span>
-                </div>
-              )}
-              {stamp.goshuinSect && (
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <Tag className="w-4 h-4 text-slate-400" />
-                  <span>宗派 {stamp.goshuinSect}</span>
                 </div>
               )}
               {stamp.isLimited !== undefined && (

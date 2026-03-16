@@ -1,14 +1,15 @@
 ﻿"use client";
 
 import Image from 'next/image';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUp, CheckCircle2, Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
 import { Stamp } from '../lib/data';
 import { useStamps } from '../lib/useStamps';
 
-import { ALL_GOSHUIN_SECTS, ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
+import { ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
 
-type FilterTab = 'type' | 'prefecture' | 'goshuin';
+type FilterTab = 'type' | 'prefecture';
+type TypeFilter = 'all' | 'station' | 'scenic' | 'goshuin' | 'goshuin-shrine' | 'goshuin-temple';
 
 interface Props {
   isActive?: boolean;
@@ -16,24 +17,25 @@ interface Props {
   onMapFocus?: (stamp: Stamp) => void;
 }
 
-const TYPE_OPTIONS = [
+const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
   { id: 'all', label: '全部' },
   { id: 'station', label: '车站印' },
   { id: 'scenic', label: '风景印' },
   { id: 'goshuin', label: '御朱印' },
-] as const;
-
-const GOSHUIN_PLACE_OPTIONS = [
-  { id: 'all', label: '全部御朱印' },
-  { id: 'shrine', label: '神社' },
-  { id: 'temple', label: '寺庙' },
-  { id: 'other', label: '未分类' },
-] as const;
+  { id: 'goshuin-shrine', label: '神社御朱印' },
+  { id: 'goshuin-temple', label: '寺庙御朱印' },
+];
 
 const GRID_GAP = 24;
-const CARD_TEXT_HEIGHT = 124;
+const CARD_TEXT_HEIGHT = 116;
 const OVERSCAN_ROWS = 3;
 const GALLERY_SCROLL_KEY = 'stamptracker-gallery-scroll-top';
+const STAMP_SEARCH_TEXT = new Map(
+  ALL_STAMPS.map((stamp) => [
+    stamp.id,
+    `${stamp.name} ${stamp.description} ${stamp.address} ${stamp.prefecture || ''}`.toLowerCase(),
+  ]),
+);
 
 function getColumnCount(width: number) {
   if (width >= 1024) return 4;
@@ -46,6 +48,15 @@ function getGoshuinPlaceLabel(stamp: Stamp) {
   if (stamp.goshuinPlaceType === 'temple') return '寺庙';
   if (stamp.goshuinPlaceType === 'other') return '未分类';
   return null;
+}
+
+function matchesTypeFilter(stamp: Stamp, filter: TypeFilter) {
+  if (filter === 'all') return true;
+  if (filter === 'station' || filter === 'scenic') return stamp.type === filter;
+  if (filter === 'goshuin') return stamp.type === 'goshuin';
+  if (filter === 'goshuin-shrine') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'shrine';
+  if (filter === 'goshuin-temple') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'temple';
+  return false;
 }
 
 function StampCard({
@@ -117,18 +128,11 @@ function StampCard({
         <h3 className={`font-bold text-sm sm:text-base line-clamp-1 ${isCollected ? 'text-slate-800' : 'text-slate-600'}`}>
           {stamp.name}
         </h3>
-        {stamp.type === 'goshuin' && (goshuinPlaceLabel || stamp.goshuinSect) && (
+        {goshuinPlaceLabel && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {goshuinPlaceLabel && (
-              <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">
-                {goshuinPlaceLabel}
-              </span>
-            )}
-            {stamp.goshuinSect && (
-              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                {stamp.goshuinSect}
-              </span>
-            )}
+            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+              {goshuinPlaceLabel}
+            </span>
           </div>
         )}
         <div className="flex items-start gap-1 mt-2 text-slate-500">
@@ -142,10 +146,8 @@ function StampCard({
 
 export default function GalleryComponent({ isActive = true, onStampClick, onMapFocus }: Props) {
   const { collectedIds, count, isInitialized } = useStamps();
-  const [activeTypeFilter, setActiveTypeFilter] = useState<string>('all');
+  const [activeTypeFilter, setActiveTypeFilter] = useState<TypeFilter>('all');
   const [activePrefFilter, setActivePrefFilter] = useState('all');
-  const [activeGoshuinPlaceFilter, setActiveGoshuinPlaceFilter] = useState<string>('all');
-  const [activeGoshuinSectFilter, setActiveGoshuinSectFilter] = useState('all');
   const [filterTab, setFilterTab] = useState<FilterTab>('type');
   const [searchQuery, setSearchQuery] = useState('');
   const [scrollTop, setScrollTop] = useState(0);
@@ -155,33 +157,21 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
   const scrollRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const hasRestoredRef = useRef(false);
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+  const deferredTypeFilter = useDeferredValue(activeTypeFilter);
+  const deferredPrefFilter = useDeferredValue(activePrefFilter);
 
   const filteredStamps = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = deferredSearchQuery.trim().toLowerCase();
 
     return ALL_STAMPS.filter((stamp) => {
-      const matchesType = activeTypeFilter === 'all' || stamp.type === activeTypeFilter;
-      const matchesPref = activePrefFilter === 'all' || stamp.prefecture === activePrefFilter;
-      const matchesGoshuinPlace =
-        activeGoshuinPlaceFilter === 'all'
-          ? true
-          : stamp.type === 'goshuin' && (stamp.goshuinPlaceType ?? 'other') === activeGoshuinPlaceFilter;
-      const matchesGoshuinSect =
-        activeGoshuinSectFilter === 'all'
-          ? true
-          : stamp.type === 'goshuin' && (stamp.goshuinSect ?? '') === activeGoshuinSectFilter;
-      const matchesSearch =
-        q === '' ||
-        stamp.name.toLowerCase().includes(q) ||
-        stamp.description.toLowerCase().includes(q) ||
-        stamp.address.toLowerCase().includes(q) ||
-        (stamp.prefecture || '').toLowerCase().includes(q) ||
-        (stamp.goshuinSect || '').toLowerCase().includes(q) ||
-        (stamp.goshuinPlaceType || '').toLowerCase().includes(q);
+      const matchesType = matchesTypeFilter(stamp, deferredTypeFilter);
+      const matchesPref = deferredPrefFilter === 'all' || stamp.prefecture === deferredPrefFilter;
+      const matchesSearch = q === '' || (STAMP_SEARCH_TEXT.get(stamp.id)?.includes(q) ?? false);
 
-      return matchesType && matchesPref && matchesGoshuinPlace && matchesGoshuinSect && matchesSearch;
+      return matchesType && matchesPref && matchesSearch;
     });
-  }, [activeGoshuinPlaceFilter, activeGoshuinSectFilter, activePrefFilter, activeTypeFilter, searchQuery]);
+  }, [deferredPrefFilter, deferredSearchQuery, deferredTypeFilter]);
 
   useEffect(() => {
     const updateMetrics = () => {
@@ -242,7 +232,7 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
     if (typeof window !== 'undefined') {
       window.sessionStorage.setItem(GALLERY_SCROLL_KEY, '0');
     }
-  }, [activeGoshuinPlaceFilter, activeGoshuinSectFilter, activePrefFilter, activeTypeFilter, searchQuery, filterTab]);
+  }, [activePrefFilter, activeTypeFilter, searchQuery, filterTab]);
 
   if (!isInitialized) {
     return (
@@ -280,11 +270,16 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
 
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="搜索印章名称、地点、描述、宗派..."
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                startTransition(() => {
+                  setSearchQuery(nextValue);
+                });
+              }}
+            placeholder="搜索印章名称、地点或描述..."
             className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
           />
           {searchQuery && (
@@ -297,7 +292,7 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
           )}
         </div>
 
-        <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-3">
           <button
             onClick={() => setFilterTab('type')}
             className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
@@ -318,16 +313,6 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
           >
             按都道府县
           </button>
-          <button
-            onClick={() => setFilterTab('goshuin')}
-            className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-              filterTab === 'goshuin'
-                ? 'bg-slate-800 text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            神社 / 寺庙 / 宗派
-          </button>
         </div>
 
         {filterTab === 'type' && (
@@ -335,7 +320,11 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
             {TYPE_OPTIONS.map((type) => (
               <button
                 key={type.id}
-                onClick={() => setActiveTypeFilter(type.id)}
+                onClick={() => {
+                  startTransition(() => {
+                    setActiveTypeFilter(type.id);
+                  });
+                }}
                 className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   activeTypeFilter === type.id
                     ? 'bg-slate-800 text-white shadow-sm'
@@ -352,7 +341,11 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
           <div className="mb-4">
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setActivePrefFilter('all')}
+                onClick={() => {
+                  startTransition(() => {
+                    setActivePrefFilter('all');
+                  });
+                }}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   activePrefFilter === 'all'
                     ? 'bg-slate-800 text-white'
@@ -364,7 +357,11 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
               {ALL_PREFECTURES.map((pref) => (
                 <button
                   key={pref}
-                  onClick={() => setActivePrefFilter(pref)}
+                  onClick={() => {
+                    startTransition(() => {
+                      setActivePrefFilter(pref);
+                    });
+                  }}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
                     activePrefFilter === pref
                       ? 'bg-blue-600 text-white'
@@ -374,49 +371,6 @@ export default function GalleryComponent({ isActive = true, onStampClick, onMapF
                   {pref}
                 </button>
               ))}
-            </div>
-          </div>
-        )}
-
-        {filterTab === 'goshuin' && (
-          <div className="mb-4 space-y-3">
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {GOSHUIN_PLACE_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  onClick={() => {
-                    setActiveGoshuinPlaceFilter(option.id);
-                    if (activeTypeFilter === 'all') {
-                      setActiveTypeFilter('goshuin');
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                    activeGoshuinPlaceFilter === option.id
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-              <label className="text-xs font-medium text-slate-500 sm:min-w-16">宗派</label>
-              <select
-                value={activeGoshuinSectFilter}
-                onChange={(e) => {
-                  setActiveGoshuinSectFilter(e.target.value);
-                  if (activeTypeFilter === 'all') {
-                    setActiveTypeFilter('goshuin');
-                  }
-                }}
-                className="w-full sm:max-w-xs rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm"
-              >
-                <option value="all">全部宗派</option>
-                {ALL_GOSHUIN_SECTS.map((sect) => (
-                  <option key={sect} value={sect}>{sect}</option>
-                ))}
-              </select>
             </div>
           </div>
         )}

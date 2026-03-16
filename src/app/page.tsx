@@ -1,9 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { Grid, BookOpen, Compass, BarChart2 } from "lucide-react";
 import dynamic from 'next/dynamic';
-import GalleryComponent from "../components/GalleryComponent";
 import StatsComponent from "../components/StatsComponent";
 import StampDetailModal from "../components/StampDetailModal";
 import { Stamp } from "../lib/data";
@@ -15,6 +14,17 @@ const DynamicMap = dynamic(() => import('../components/MapComponent'), {
       <p className="text-slate-500 font-medium flex items-center gap-2">
         <Compass className="w-5 h-5 animate-pulse" />
         正在加载地图...
+      </p>
+    </div>
+  )
+});
+
+const DynamicGallery = dynamic(() => import('../components/GalleryComponent'), {
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+      <p className="text-slate-500 font-medium flex items-center gap-2">
+        <Grid className="w-5 h-5 animate-pulse" />
+        正在加载图鉴...
       </p>
     </div>
   )
@@ -40,7 +50,15 @@ export default function Home() {
 
   const handleMapFocus = (stamp: Stamp) => {
     setFocusedStamp(stamp);
-    setActiveTab("map");
+    startTransition(() => {
+      setActiveTab("map");
+    });
+  };
+
+  const switchTab = (tab: Tab) => {
+    startTransition(() => {
+      setActiveTab(tab);
+    });
   };
 
   return (
@@ -55,7 +73,7 @@ export default function Home() {
 
         <div className="hidden sm:flex bg-slate-100 p-1 rounded-lg gap-0.5">
           <button
-            onClick={() => setActiveTab("map")}
+            onClick={() => switchTab("map")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === "map"
                 ? "bg-white text-blue-600 shadow-sm"
@@ -66,7 +84,7 @@ export default function Home() {
             探索地图
           </button>
           <button
-            onClick={() => setActiveTab("gallery")}
+            onClick={() => switchTab("gallery")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === "gallery"
                 ? "bg-white text-blue-600 shadow-sm"
@@ -77,7 +95,7 @@ export default function Home() {
             印章图鉴
           </button>
           <button
-            onClick={() => setActiveTab("stats")}
+            onClick={() => switchTab("stats")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === "stats"
                 ? "bg-white text-blue-600 shadow-sm"
@@ -101,7 +119,7 @@ export default function Home() {
 
         {hasOpenedGallery && (
           <div className={`absolute inset-0 min-h-0 p-4 sm:p-6 lg:p-8 bg-slate-50 ${activeTab === 'gallery' ? '' : 'invisible pointer-events-none'}`}>
-            <GalleryComponent
+            <DynamicGallery
               isActive={activeTab === 'gallery'}
               onStampClick={handleStampClick}
               onMapFocus={handleMapFocus}
@@ -118,7 +136,7 @@ export default function Home() {
 
       <nav className="sm:hidden bg-white border-t border-slate-200 flex justify-around pb-safe z-20">
         <button
-          onClick={() => setActiveTab("map")}
+          onClick={() => switchTab("map")}
           className={`flex-1 py-3 flex flex-col items-center gap-1 ${
             activeTab === "map" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
           }`}
@@ -127,7 +145,7 @@ export default function Home() {
           <span className="text-[10px] font-medium">探索</span>
         </button>
         <button
-          onClick={() => setActiveTab("gallery")}
+          onClick={() => switchTab("gallery")}
           className={`flex-1 py-3 flex flex-col items-center gap-1 ${
             activeTab === "gallery" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
           }`}
@@ -136,7 +154,7 @@ export default function Home() {
           <span className="text-[10px] font-medium">图鉴</span>
         </button>
         <button
-          onClick={() => setActiveTab("stats")}
+          onClick={() => switchTab("stats")}
           className={`flex-1 py-3 flex flex-col items-center gap-1 ${
             activeTab === "stats" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
           }`}

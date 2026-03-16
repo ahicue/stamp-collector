@@ -9,7 +9,7 @@ import { CheckCircle, Filter } from 'lucide-react';
 import { Stamp, StampType } from '../lib/data';
 import { useStamps } from '../lib/useStamps';
 import { formatDistance, getDistanceKm } from '../lib/geo';
-import { ALL_GOSHUIN_SECTS, ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
+import { ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
 
 const BASE_COLORS: Record<StampType, string> = {
   scenic: '#ef4444',
@@ -21,6 +21,7 @@ const markerIconCache = new Map<string, L.DivIcon>();
 const clusterIconCache = new Map<string, L.DivIcon>();
 
 type ClusterLike = { getChildCount: () => number };
+type TypeFilter = 'all' | StampType | 'goshuin-shrine' | 'goshuin-temple';
 
 const TYPE_GLYPH: Record<StampType, string> = {
   station:
@@ -162,6 +163,14 @@ function getGoshuinPlaceLabel(stamp: Stamp) {
   return null;
 }
 
+function matchesTypeFilter(stamp: Stamp, filter: TypeFilter) {
+  if (filter === 'all') return true;
+  if (filter === 'station' || filter === 'scenic' || filter === 'goshuin') return stamp.type === filter;
+  if (filter === 'goshuin-shrine') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'shrine';
+  if (filter === 'goshuin-temple') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'temple';
+  return false;
+}
+
 function MapController({ focusedStamp, onFocusConsumed, userLocation }: {
   focusedStamp: Stamp | null;
   onFocusConsumed: () => void;
@@ -249,27 +258,17 @@ interface MapComponentProps {
 
 export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSelect }: MapComponentProps) {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [activeTypeFilter, setActiveTypeFilter] = useState<'all' | StampType>('all');
+  const [activeTypeFilter, setActiveTypeFilter] = useState<TypeFilter>('all');
   const [activePrefFilter, setActivePrefFilter] = useState('all');
-  const [activeGoshuinPlaceFilter, setActiveGoshuinPlaceFilter] = useState<'all' | 'shrine' | 'temple' | 'other'>('all');
-  const [activeGoshuinSectFilter, setActiveGoshuinSectFilter] = useState('all');
   const { collectedIds, checkInStamp } = useStamps();
 
   const filteredStamps = useMemo(() => {
     return ALL_STAMPS.filter((stamp) => {
-      const matchesType = activeTypeFilter === 'all' || stamp.type === activeTypeFilter;
+      const matchesType = matchesTypeFilter(stamp, activeTypeFilter);
       const matchesPref = activePrefFilter === 'all' || stamp.prefecture === activePrefFilter;
-      const matchesGoshuinPlace =
-        activeGoshuinPlaceFilter === 'all'
-          ? true
-          : stamp.type === 'goshuin' && (stamp.goshuinPlaceType ?? 'other') === activeGoshuinPlaceFilter;
-      const matchesGoshuinSect =
-        activeGoshuinSectFilter === 'all'
-          ? true
-          : stamp.type === 'goshuin' && (stamp.goshuinSect ?? '') === activeGoshuinSectFilter;
-      return matchesType && matchesPref && matchesGoshuinPlace && matchesGoshuinSect;
+      return matchesType && matchesPref;
     });
-  }, [activeGoshuinPlaceFilter, activeGoshuinSectFilter, activePrefFilter, activeTypeFilter]);
+  }, [activePrefFilter, activeTypeFilter]);
 
   const markerItems = useMemo(() => {
     return filteredStamps.map((stamp) => {
@@ -286,13 +285,6 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
     setUserLocation(pos);
   }, []);
 
-  const resetFilters = () => {
-    setActiveTypeFilter('all');
-    setActivePrefFilter('all');
-    setActiveGoshuinPlaceFilter('all');
-    setActiveGoshuinSectFilter('all');
-  };
-
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       <style>{`
@@ -308,7 +300,10 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
       `}</style>
 
       <MapContainer center={[35.6895, 139.6917]} zoom={5} style={{ height: '100%', width: '100%', zIndex: 0 }} zoomControl={false}>
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'
+          url="https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png"
+        />
 
         <MapController
           focusedStamp={focusedStamp ?? null}
@@ -382,9 +377,6 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
                         {goshuinPlaceLabel && (
                           <p className="text-[10px] text-purple-600 font-medium">{goshuinPlaceLabel}</p>
                         )}
-                        {stamp.goshuinSect && (
-                          <p className="text-[10px] text-amber-600 font-medium">{stamp.goshuinSect}</p>
-                        )}
                         {distText && (
                           <p className="text-[10px] text-slate-400 font-medium">{distText}</p>
                         )}
@@ -429,7 +421,7 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
         </MarkerClusterGroup>
       </MapContainer>
 
-      <div className="absolute top-3 right-3 z-[1100] w-72 max-w-[calc(100%-24px)] rounded-xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-lg">
+      <div className="absolute top-3 right-3 z-[1100] w-60 max-w-[calc(100%-24px)] rounded-xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-lg">
         <div className="flex items-center gap-2 text-slate-700 mb-2">
           <Filter className="w-4 h-4" />
           <h3 className="text-sm font-semibold">地图筛选</h3>
@@ -440,13 +432,15 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
             <label className="text-xs text-slate-500">收集种类</label>
             <select
               value={activeTypeFilter}
-              onChange={(e) => setActiveTypeFilter(e.target.value as 'all' | StampType)}
+              onChange={(e) => setActiveTypeFilter(e.target.value as TypeFilter)}
               className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm text-slate-700"
             >
               <option value="all">全部</option>
               <option value="scenic">风景印</option>
               <option value="station">车站印</option>
               <option value="goshuin">御朱印</option>
+              <option value="goshuin-shrine">神社御朱印</option>
+              <option value="goshuin-temple">寺庙御朱印</option>
             </select>
           </div>
 
@@ -465,50 +459,15 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="text-xs text-slate-500">御朱印场所</label>
-            <select
-              value={activeGoshuinPlaceFilter}
-              onChange={(e) => {
-                setActiveGoshuinPlaceFilter(e.target.value as 'all' | 'shrine' | 'temple' | 'other');
-                if (e.target.value !== 'all' && activeTypeFilter === 'all') {
-                  setActiveTypeFilter('goshuin');
-                }
-              }}
-              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm text-slate-700"
-            >
-              <option value="all">全部</option>
-              <option value="shrine">神社</option>
-              <option value="temple">寺庙</option>
-              <option value="other">未分类</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs text-slate-500">宗派</label>
-            <select
-              value={activeGoshuinSectFilter}
-              onChange={(e) => {
-                setActiveGoshuinSectFilter(e.target.value);
-                if (e.target.value !== 'all' && activeTypeFilter === 'all') {
-                  setActiveTypeFilter('goshuin');
-                }
-              }}
-              className="mt-1 w-full rounded-md border border-slate-200 px-2 py-1.5 text-sm text-slate-700"
-            >
-              <option value="all">全部宗派</option>
-              {ALL_GOSHUIN_SECTS.map((sect) => (
-                <option key={sect} value={sect}>{sect}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
         <div className="mt-3 flex items-center justify-between">
           <p className="text-xs text-slate-500">显示 {filteredStamps.length} / {ALL_STAMPS.length}</p>
           <button
-            onClick={resetFilters}
+            onClick={() => {
+              setActiveTypeFilter('all');
+              setActivePrefFilter('all');
+            }}
             className="text-xs text-blue-600 hover:text-blue-700 font-medium"
           >
             重置
@@ -520,3 +479,7 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
     </div>
   );
 }
+
+
+
+
