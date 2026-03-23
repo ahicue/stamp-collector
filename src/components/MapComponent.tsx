@@ -21,7 +21,7 @@ const markerIconCache = new Map<string, L.DivIcon>();
 const clusterIconCache = new Map<string, L.DivIcon>();
 
 type ClusterLike = { getChildCount: () => number };
-type TypeFilter = 'all' | StampType | 'goshuin-shrine' | 'goshuin-temple';
+type TypeFilter = 'all' | 'station' | 'scenic' | 'goshuin-shrine' | 'goshuin-temple';
 
 const TYPE_GLYPH: Record<StampType, string> = {
   station:
@@ -32,8 +32,18 @@ const TYPE_GLYPH: Record<StampType, string> = {
     '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16"></path><path d="M7 8v3"></path><path d="M17 8v3"></path><path d="M6 14h12"></path><path d="M8 14v6"></path><path d="M16 14v6"></path></svg>',
 };
 
-function createCustomIcon(type: StampType, color: string, isCollected = false) {
-  const glyph = TYPE_GLYPH[type];
+const GOSHUIN_TEMPLE_GLYPH =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18"></path><path d="M5 10l7-5 7 5"></path><path d="M6 10v8"></path><path d="M10 10v8"></path><path d="M14 10v8"></path><path d="M18 10v8"></path><path d="M4 18h16"></path></svg>';
+
+function getMarkerGlyph(stamp: Stamp) {
+  if (stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'temple') {
+    return GOSHUIN_TEMPLE_GLYPH;
+  }
+  return TYPE_GLYPH[stamp.type];
+}
+
+function createCustomIcon(stamp: Stamp, color: string, isCollected = false) {
+  const glyph = getMarkerGlyph(stamp);
 
   return L.divIcon({
     className: 'stamp-marker-icon',
@@ -54,12 +64,13 @@ function createCustomIcon(type: StampType, color: string, isCollected = false) {
   });
 }
 
-function getMarkerIcon(type: StampType, isCollected: boolean): L.DivIcon {
-  const key = `${type}:${isCollected ? '1' : '0'}`;
+function getMarkerIcon(stamp: Stamp, isCollected: boolean): L.DivIcon {
+  const glyphKey = stamp.type === 'goshuin' ? stamp.goshuinPlaceType ?? 'other' : 'base';
+  const key = `${stamp.type}:${glyphKey}:${isCollected ? '1' : '0'}`;
   const cached = markerIconCache.get(key);
   if (cached) return cached;
 
-  const icon = createCustomIcon(type, BASE_COLORS[type], isCollected);
+  const icon = createCustomIcon(stamp, BASE_COLORS[stamp.type], isCollected);
   markerIconCache.set(key, icon);
   return icon;
 }
@@ -165,7 +176,7 @@ function getGoshuinPlaceLabel(stamp: Stamp) {
 
 function matchesTypeFilter(stamp: Stamp, filter: TypeFilter) {
   if (filter === 'all') return true;
-  if (filter === 'station' || filter === 'scenic' || filter === 'goshuin') return stamp.type === filter;
+  if (filter === 'station' || filter === 'scenic') return stamp.type === filter;
   if (filter === 'goshuin-shrine') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'shrine';
   if (filter === 'goshuin-temple') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'temple';
   return false;
@@ -276,7 +287,7 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
       return {
         stamp,
         collected,
-        icon: getMarkerIcon(stamp.type, collected),
+        icon: getMarkerIcon(stamp, collected),
       };
     });
   }, [collectedIds, filteredStamps]);
@@ -297,10 +308,17 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        .jp-light-tiles {
+          filter: saturate(0.82) brightness(1.06) contrast(0.94);
+        }
+        .jp-light-tiles img {
+          filter: saturate(0.82) brightness(1.06) contrast(0.94);
+        }
       `}</style>
 
       <MapContainer center={[35.6895, 139.6917]} zoom={5} style={{ height: '100%', width: '100%', zIndex: 0 }} zoomControl={false}>
         <TileLayer
+          className="jp-light-tiles"
           attribution='&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'
           url="https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png"
         />
@@ -438,9 +456,8 @@ export default function MapComponent({ focusedStamp, onFocusConsumed, onStampSel
               <option value="all">全部</option>
               <option value="scenic">风景印</option>
               <option value="station">车站印</option>
-              <option value="goshuin">御朱印</option>
-              <option value="goshuin-shrine">神社御朱印</option>
-              <option value="goshuin-temple">寺庙御朱印</option>
+              <option value="goshuin-shrine">御朱印</option>
+              <option value="goshuin-temple">寺院</option>
             </select>
           </div>
 

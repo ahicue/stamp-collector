@@ -2,14 +2,14 @@
 
 import Image from 'next/image';
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUp, CheckCircle2, Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
+import { ArrowUp, CheckCircle2, Landmark, Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
 import { Stamp } from '../lib/data';
 import { useStamps } from '../lib/useStamps';
 
 import { ALL_PREFECTURES, ALL_STAMPS } from '../lib/stamps';
 
 type FilterTab = 'type' | 'prefecture';
-type TypeFilter = 'all' | 'station' | 'scenic' | 'goshuin' | 'goshuin-shrine' | 'goshuin-temple';
+type TypeFilter = 'all' | 'station' | 'scenic' | 'goshuin-shrine' | 'goshuin-temple';
 
 interface Props {
   isActive?: boolean;
@@ -21,9 +21,8 @@ const TYPE_OPTIONS: { id: TypeFilter; label: string }[] = [
   { id: 'all', label: '全部' },
   { id: 'station', label: '车站印' },
   { id: 'scenic', label: '风景印' },
-  { id: 'goshuin', label: '御朱印' },
-  { id: 'goshuin-shrine', label: '神社御朱印' },
-  { id: 'goshuin-temple', label: '寺庙御朱印' },
+  { id: 'goshuin-shrine', label: '御朱印' },
+  { id: 'goshuin-temple', label: '寺院' },
 ];
 
 const GRID_GAP = 24;
@@ -53,7 +52,6 @@ function getGoshuinPlaceLabel(stamp: Stamp) {
 function matchesTypeFilter(stamp: Stamp, filter: TypeFilter) {
   if (filter === 'all') return true;
   if (filter === 'station' || filter === 'scenic') return stamp.type === filter;
-  if (filter === 'goshuin') return stamp.type === 'goshuin';
   if (filter === 'goshuin-shrine') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'shrine';
   if (filter === 'goshuin-temple') return stamp.type === 'goshuin' && stamp.goshuinPlaceType === 'temple';
   return false;
@@ -99,7 +97,8 @@ function StampCard({
             {stamp.type === 'station' ? '车站印' : stamp.type === 'scenic' ? '风景印' : '御朱印'}
           </div>
           {goshuinPlaceLabel && (
-            <div className="bg-black/55 text-white px-2 py-1 rounded-md text-[10px] font-semibold shadow-sm">
+            <div className="bg-black/55 text-white px-2 py-1 rounded-md text-[10px] font-semibold shadow-sm flex items-center gap-1">
+              {stamp.goshuinPlaceType === 'temple' && <Landmark className="w-3 h-3" />}
               {goshuinPlaceLabel}
             </div>
           )}
@@ -130,7 +129,8 @@ function StampCard({
         </h3>
         {goshuinPlaceLabel && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700">
+            <span className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-purple-700 inline-flex items-center gap-1">
+              {stamp.goshuinPlaceType === 'temple' && <Landmark className="w-3 h-3" />}
               {goshuinPlaceLabel}
             </span>
           </div>
