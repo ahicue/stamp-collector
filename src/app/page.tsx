@@ -31,10 +31,11 @@ export default function Home() {
             </div>
           </section>
           <section className="portal-worlds" id="worlds" aria-labelledby="worlds-title">
-            <div className="worlds-heading"><div><div className="portal-eyebrow">✦ &nbsp; EXPLORE THE COLLECTION</div><h2 id="worlds-title">选择你的目的地<span>。</span></h2></div><p>两张地图，不同的旅程。<br />从这里出发，发现更多可能。</p></div>
+            <div className="worlds-heading"><div><div className="portal-eyebrow">✦ &nbsp; EXPLORE THE COLLECTION</div><h2 id="worlds-title">选择你的目的地<span>。</span></h2></div><p>几个入口，不同的奇遇。<br />从这里出发，发现更多可能。</p></div>
             <div className="world-grid">
               <a className="world-card stamp-card" href="/stamps"><div className="card-top"><span>01 / COLLECTION</span><span className="card-arrow">↗</span></div><div className="card-icon stamp-icon" aria-hidden="true"><span>✳</span></div><div className="card-content"><div className="card-kicker">STAMP TRACKER</div><h3>印章地图</h3><p>探索各地印章，在地图与图鉴中记录你的收藏。</p><span className="card-link">进入印章世界 <span>↗</span></span></div></a>
               <a className="world-card sstr-card" href="/sstr"><div className="card-top"><span>02 / JOURNEY</span><span className="card-arrow">↗</span></div><div className="card-icon route-icon" aria-hidden="true"><span className="route-line" /><span className="route-point route-start" /><span className="route-point route-end" /><span className="route-star">✦</span></div><div className="card-content"><div className="card-kicker">SSTR 2026</div><h3>SSTR 路线地图</h3><p>挑选点位、规划路线，为下一段旅程做好准备。</p><span className="card-link">开始规划路线 <span>↗</span></span></div></a>
+              <a className="world-card cosmos-card" href="/cosmos"><div className="card-top"><span>03 / PLAYGROUND</span><span className="card-arrow">↗</span></div><div className="card-icon cosmos-icon" aria-hidden="true">✦<span>✧</span></div><div className="card-content"><div className="card-kicker">CONSTELLATION PLAYGROUND</div><h3>造一座星座</h3><p>点亮星星，把它们连成只属于你的星座。</p><span className="card-link">进入星空画布 <span>↗</span></span></div></a>
             </div>
           </section>
           <section className="portal-contact"><div><div className="portal-eyebrow">✦ &nbsp; KEEP IN TOUCH</div><h2>下一段奇遇，从这里开始<span>。</span></h2><p>有想法、问题，或者只是想打个招呼？欢迎来信。</p></div><a href="mailto:y@ahicue.com">y@ahicue.com <span>↗</span></a></section>

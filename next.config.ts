@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   async rewrites() {
-    return [{ source: "/sstr", destination: "/sstr/index.html" }];
+    return [
+      { source: "/sstr", destination: "/sstr/index.html" },
+      { source: "/cosmos", destination: "/cosmos/index.html" },
+    ];
   },
   images: {
     dangerouslyAllowSVG: true,
