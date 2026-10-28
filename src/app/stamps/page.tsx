@@ -62,17 +62,18 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50">
+    <div className="stamp-app flex flex-col h-screen bg-slate-50">
       <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between z-20">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-blue-600" />
-          <h1 className="font-bold text-lg text-slate-800 tracking-tight">
-            stamptracker
-          </h1>
+        <div className="stamp-brand">
+          <a className="stamp-home" href="/" aria-label="返回 Ahicue 首页">✳ <span>AHICUE</span></a>
+          <span className="stamp-divider" aria-hidden="true" />
+          <BookOpen className="w-5 h-5 stamp-brand-icon" />
+          <h1>印章地图</h1>
         </div>
 
         <div className="hidden sm:flex bg-slate-100 p-1 rounded-lg gap-0.5">
           <button
+            aria-pressed={activeTab === "map"}
             onClick={() => switchTab("map")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === "map"
@@ -84,6 +85,7 @@ export default function Home() {
             探索地图
           </button>
           <button
+            aria-pressed={activeTab === "gallery"}
             onClick={() => switchTab("gallery")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === "gallery"
@@ -95,6 +97,7 @@ export default function Home() {
             印章图鉴
           </button>
           <button
+            aria-pressed={activeTab === "stats"}
             onClick={() => switchTab("stats")}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
               activeTab === "stats"
@@ -136,7 +139,8 @@ export default function Home() {
 
       <nav className="sm:hidden bg-white border-t border-slate-200 flex justify-around pb-safe z-20">
         <button
-          onClick={() => switchTab("map")}
+          aria-pressed={activeTab === "map"}
+            onClick={() => switchTab("map")}
           className={`flex-1 py-3 flex flex-col items-center gap-1 ${
             activeTab === "map" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
           }`}
@@ -145,7 +149,8 @@ export default function Home() {
           <span className="text-[10px] font-medium">探索</span>
         </button>
         <button
-          onClick={() => switchTab("gallery")}
+          aria-pressed={activeTab === "gallery"}
+            onClick={() => switchTab("gallery")}
           className={`flex-1 py-3 flex flex-col items-center gap-1 ${
             activeTab === "gallery" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
           }`}
@@ -154,7 +159,8 @@ export default function Home() {
           <span className="text-[10px] font-medium">图鉴</span>
         </button>
         <button
-          onClick={() => switchTab("stats")}
+          aria-pressed={activeTab === "stats"}
+            onClick={() => switchTab("stats")}
           className={`flex-1 py-3 flex flex-col items-center gap-1 ${
             activeTab === "stats" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
           }`}

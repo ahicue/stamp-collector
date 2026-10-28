@@ -57,3 +57,23 @@ body {
   background: none;
   border: none;
 }
+
+/* Stamp tracker: a dark navigation shell with light, readable map controls. */
+.stamp-app > header { min-height: 68px; background: linear-gradient(110deg,#0d1026,#1e193a); border-bottom: 1px solid #a798e63b; color: #f5f2ff; padding: 10px 20px; box-shadow: 0 6px 24px #17132c26; }
+.stamp-brand { display:flex; align-items:center; gap:10px; min-width:0; }
+.stamp-brand h1 { font-size:15px; font-weight:700; color:#f1efff; white-space:nowrap; }
+.stamp-home { color:#d2c1ff; display:flex; align-items:center; gap:7px; text-decoration:none; font-size:21px; }
+.stamp-home span { font-size:11px; font-weight:800; letter-spacing:.13em; color:#efebff; }
+.stamp-divider { width:1px; height:23px; background:#ffffff33; margin:0 3px; }
+.stamp-brand-icon { color:#bda5ff; }
+.stamp-app > header > div:nth-child(2) { background:#ffffff0d; border:1px solid #ffffff1c; border-radius:12px; padding:4px; }
+.stamp-app > header button { color:#c4c0da; border-radius:8px; }
+.stamp-app > header button[aria-pressed="true"] { color:#f4edff; background:#625184; box-shadow:0 2px 12px #0003; }
+.stamp-app > header button:hover { color:#fff; }
+.stamp-app > nav { background:#11142c; border-color:#a798e638; color:#a7a2c0; padding-bottom:env(safe-area-inset-bottom); }
+.stamp-app > nav button { color:#aaa6c5; }
+.stamp-app > nav button[aria-pressed="true"] { color:#d1bcff; }
+.stamp-app > main > div.bg-slate-50 { background:#f5f3fa; }
+.stamp-app .leaflet-control-zoom a { color:#4d3f7e; }
+.stamp-app a:focus-visible, .stamp-app button:focus-visible, .stamp-app select:focus-visible { outline:2px solid #9b7be3; outline-offset:2px; }
+@media(max-width:639px){ .stamp-app > header { min-height:60px; padding:9px 15px; } .stamp-home span { font-size:10px; } .stamp-brand h1 { font-size:14px; } }

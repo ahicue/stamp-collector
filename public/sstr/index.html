@@ -518,13 +518,35 @@
         font-size: 18px;
       }
     }
+
+
+    /* Coordinate the navigation shell with the Ahicue homepage while keeping the map readable. */
+    :root { --panel:#f8f7fd; --line:#ded9ee; --ink:#25233a; --ink-soft:#6a6780; --accent:#65509a; --accent-strong:#4c397c; --shadow:0 16px 36px rgba(10,9,31,.22); }
+    .panel { background:linear-gradient(165deg,#10132b,#252044); border-right:1px solid #a798e643; }
+    .panel-head { color:#f7f4ff; }
+    .sstr-brand { min-width:0; }
+    .sstr-home { display:inline-block; color:#c9b4ff; font-size:10px; letter-spacing:.16em; font-weight:800; text-decoration:none; margin-bottom:5px; }
+    .title { color:#f7f4ff; font-size:21px; letter-spacing:0; }
+    .card { background:#f8f7fd; border-color:#e1dcf0; box-shadow:0 4px 14px #090c2020; }
+    .score-pill { background:#f0ecfa; border-color:#ddd3f3; color:#514767; }
+    .score-pill strong { color:#342b52; }
+    .secondary { background:#ede8f8; color:#4a3e62; }
+    .primary { background:#675198; color:#fff; }
+    .primary:hover { background:#594384; }
+    .undo-fab,.locate-fab,.export-fab { background:#433768; border-color:#dfd2ff; color:#fff; box-shadow:0 8px 22px #17102b4d; }
+    .locate-fab { background:#315f76; border-color:#ccecf2; }
+    .export-fab { background:#574477; }
+    .floating-tip { background:#fcfbffed; border-color:#dfd8ed; color:#4f4960; }
+    #statusText { color:#ddd4f1; }
+    .panel a:focus-visible, .panel button:focus-visible, .panel input:focus-visible, .map-fab-group button:focus-visible { outline:2px solid #bf9cff; outline-offset:2px; }
+    @media(max-width:920px) { .panel-head { background:linear-gradient(165deg,#10132b,#252044); } .panel.mobile-collapsed { max-height:80px; } .title { font-size:17px; } .sstr-home { margin-bottom:2px; } }
   </style>
 </head>
 <body>
   <div class="app">
     <aside id="controlPanel" class="panel">
       <div class="panel-head">
-        <h1 class="title">SSTR 2026 路线绘制</h1>
+        <div class="sstr-brand"><a href="/" class="sstr-home" aria-label="返回 Ahicue 首页">✳ AHICUE</a><h1 class="title">SSTR 路线地图</h1></div>
         <button id="togglePanelBtn" class="panel-toggle secondary" type="button" aria-expanded="true" aria-controls="panelBody">收起面板</button>
       </div>
 
@@ -666,7 +688,7 @@
 
     function showStatus(message, isError) {
       statusTextEl.textContent = message;
-      statusTextEl.style.color = isError ? "#b94728" : "#556f65";
+      statusTextEl.style.color = isError ? "#ffb4aa" : "#d1cbe4";
     }
 
     function escapeHtml(value) {
