@@ -1,0 +1,172 @@
+"use client";
+
+import { startTransition, useEffect, useState } from "react";
+import { Grid, BookOpen, Compass, BarChart2 } from "lucide-react";
+import dynamic from 'next/dynamic';
+import StatsComponent from "../../components/StatsComponent";
+import StampDetailModal from "../../components/StampDetailModal";
+import { Stamp } from "../../lib/data";
+
+const DynamicMap = dynamic(() => import('../../components/MapComponent'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-slate-200">
+      <p className="text-slate-500 font-medium flex items-center gap-2">
+        <Compass className="w-5 h-5 animate-pulse" />
+        正在加载地图...
+      </p>
+    </div>
+  )
+});
+
+const DynamicGallery = dynamic(() => import('../../components/GalleryComponent'), {
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+      <p className="text-slate-500 font-medium flex items-center gap-2">
+        <Grid className="w-5 h-5 animate-pulse" />
+        正在加载图鉴...
+      </p>
+    </div>
+  )
+});
+
+type Tab = "map" | "gallery" | "stats";
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<Tab>("map");
+  const [focusedStamp, setFocusedStamp] = useState<Stamp | null>(null);
+  const [selectedStamp, setSelectedStamp] = useState<Stamp | null>(null);
+  const [hasOpenedGallery, setHasOpenedGallery] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'gallery') {
+      setHasOpenedGallery(true);
+    }
+  }, [activeTab]);
+
+  const handleStampClick = (stamp: Stamp) => {
+    setSelectedStamp(stamp);
+  };
+
+  const handleMapFocus = (stamp: Stamp) => {
+    setFocusedStamp(stamp);
+    startTransition(() => {
+      setActiveTab("map");
+    });
+  };
+
+  const switchTab = (tab: Tab) => {
+    startTransition(() => {
+      setActiveTab(tab);
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-50">
+      <header className="bg-white shadow-sm px-4 py-3 flex items-center justify-between z-20">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-6 h-6 text-blue-600" />
+          <h1 className="font-bold text-lg text-slate-800 tracking-tight">
+            stamptracker
+          </h1>
+        </div>
+
+        <div className="hidden sm:flex bg-slate-100 p-1 rounded-lg gap-0.5">
+          <button
+            onClick={() => switchTab("map")}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "map"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Compass className="w-4 h-4" />
+            探索地图
+          </button>
+          <button
+            onClick={() => switchTab("gallery")}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "gallery"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Grid className="w-4 h-4" />
+            印章图鉴
+          </button>
+          <button
+            onClick={() => switchTab("stats")}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "stats"
+                ? "bg-white text-blue-600 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <BarChart2 className="w-4 h-4" />
+            统计
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 relative overflow-hidden min-h-0">
+        <div className={`absolute inset-0 bg-slate-200 ${activeTab === 'map' ? '' : 'invisible pointer-events-none'}`}>
+          <DynamicMap
+            focusedStamp={focusedStamp}
+            onFocusConsumed={() => setFocusedStamp(null)}
+            onStampSelect={setSelectedStamp}
+          />
+        </div>
+
+        {hasOpenedGallery && (
+          <div className={`absolute inset-0 min-h-0 p-4 sm:p-6 lg:p-8 bg-slate-50 ${activeTab === 'gallery' ? '' : 'invisible pointer-events-none'}`}>
+            <DynamicGallery
+              isActive={activeTab === 'gallery'}
+              onStampClick={handleStampClick}
+              onMapFocus={handleMapFocus}
+            />
+          </div>
+        )}
+
+        {activeTab === 'stats' && (
+          <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50">
+            <StatsComponent />
+          </div>
+        )}
+      </main>
+
+      <nav className="sm:hidden bg-white border-t border-slate-200 flex justify-around pb-safe z-20">
+        <button
+          onClick={() => switchTab("map")}
+          className={`flex-1 py-3 flex flex-col items-center gap-1 ${
+            activeTab === "map" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Compass className="w-6 h-6" />
+          <span className="text-[10px] font-medium">探索</span>
+        </button>
+        <button
+          onClick={() => switchTab("gallery")}
+          className={`flex-1 py-3 flex flex-col items-center gap-1 ${
+            activeTab === "gallery" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <Grid className="w-6 h-6" />
+          <span className="text-[10px] font-medium">图鉴</span>
+        </button>
+        <button
+          onClick={() => switchTab("stats")}
+          className={`flex-1 py-3 flex flex-col items-center gap-1 ${
+            activeTab === "stats" ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          <BarChart2 className="w-6 h-6" />
+          <span className="text-[10px] font-medium">统计</span>
+        </button>
+      </nav>
+
+      <StampDetailModal stamp={selectedStamp} onClose={() => setSelectedStamp(null)} />
+    </div>
+  );
+}
+
+

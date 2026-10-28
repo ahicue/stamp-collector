@@ -1,4 +1,4 @@
-﻿import type { Metadata, Viewport } from 'next';
+import type { Metadata, Viewport } from 'next';
 import StampsProvider from '../components/StampsProvider';
 import './globals.css';
 
@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="antialiased overflow-hidden">
+      <body className="antialiased">
         <StampsProvider>{children}</StampsProvider>
       </body>
     </html>
