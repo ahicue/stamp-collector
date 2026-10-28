@@ -1,6 +1,9 @@
-﻿import type { NextConfig } from "next";
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return [{ source: "/sstr", destination: "/sstr/index.html" }];
+  },
   images: {
     dangerouslyAllowSVG: true,
     remotePatterns: [

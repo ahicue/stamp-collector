@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>SSTR 2026 路线绘制工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    :root {
+      --bg: #f4f6ef;
+      --panel: #fffdf8;
+      --line: #d5dac7;
+      --ink: #20302b;
+      --ink-soft: #4f665d;
+      --accent: #0f8a5f;
+      --accent-strong: #0b6b49;
+      --warn: #b94728;
+      --shadow: 0 16px 36px rgba(24, 42, 35, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      font-family: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 20% 10%, #edf4e8, #f3f5ef 42%, #e9eee6 100%);
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      overflow: hidden;
+    }
+
+    .panel {
+      background: linear-gradient(170deg, rgba(255, 255, 255, 0.95), rgba(248, 252, 245, 0.95));
+      border-right: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0.4px;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    .btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .filter-action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.18s ease, filter 0.18s ease;
+      text-align: center;
+      touch-action: manipulation;
+    }
+
+    .panel-toggle {
+      display: none;
+      min-width: 90px;
+      flex-shrink: 0;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.04);
+    }
+
+    .primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .secondary {
+      background: #eaf2e5;
+      color: var(--ink);
+    }
+
+    .danger {
+      background: #f8e7e1;
+      color: var(--warn);
+    }
+
+    .point-list {
+      max-height: 55vh;
+      overflow: auto;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .compact-list {
+      max-height: 20vh;
+      font-size: 11px;
+    }
+
+    #specialMissionList {
+      max-height: none;
+      overflow: visible;
+    }
+
+    .type-filter-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 10px;
+    }
+
+    .type-filter-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #38524a;
+    }
+
+    .type-filter-item input {
+      margin: 0;
+    }
+
+    .special-mission-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .special-mission-option input {
+      margin: 2px 0 0;
+      flex-shrink: 0;
+    }
+
+    .special-mission-text {
+      flex: 1;
+      min-width: 0;
+      line-height: 1.45;
+    }
+
+    .score-card {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .score-pill {
+      background: #f2f8ef;
+      border: 1px solid #d8e4d0;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #38524a;
+    }
+
+    .score-pill strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 18px;
+      color: #143f33;
+    }
+
+    .time-summary {
+      margin: 0;
+      font-size: 12px;
+      color: #3d5a50;
+      line-height: 1.4;
+    }
+
+    .mission-ok {
+      color: #0f7b52;
+      font-weight: 700;
+    }
+
+    .mission-ng {
+      color: #b94728;
+      font-weight: 700;
+    }
+
+    .point-item {
+      border-bottom: 1px dashed #e0e6d7;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #31443d;
+    }
+
+    .point-item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .point-item-text {
+      flex: 1;
+      min-width: 0;
+      word-break: break-word;
+    }
+
+    .point-item-time {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #4d675f;
+    }
+
+    .rest-input {
+      width: 46px;
+      border: 1px solid #ced9d0;
+      border-radius: 8px;
+      padding: 4px 6px;
+      font-size: 12px;
+      color: #20302b;
+      background: #fff;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .rest-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #3f5d53;
+      flex-shrink: 0;
+    }
+
+    .delete-point-btn {
+      border: 1px solid #e7bdb3;
+      background: #fff3ef;
+      color: #b94728;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .point-item:last-child {
+      border-bottom: none;
+    }
+
+    .status {
+      margin: 0;
+      font-size: 12px;
+      color: #556f65;
+      min-height: 18px;
+    }
+
+    .map-wrap {
+      position: relative;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .floating-tip {
+      position: absolute;
+      top: auto;
+      right: 16px;
+      bottom: 16px;
+      z-index: 950;
+      background: rgba(255, 253, 248, 0.92);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #3e564d;
+      backdrop-filter: blur(3px);
+      max-width: 300px;
+    }
+
+    .map-fab-group {
+      position: absolute;
+      right: 16px;
+      bottom: 92px;
+      z-index: 960;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .undo-fab,
+    .locate-fab,
+    .export-fab {
+      min-width: 84px;
+      min-height: 44px;
+      border-radius: 999px;
+      background: #0f8a5f;
+      color: #fff;
+      border: 2px solid #d8f2e7;
+      box-shadow: 0 8px 20px rgba(15, 59, 44, 0.28);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 0 16px;
+    }
+
+    .locate-fab {
+      background: #357fdb;
+      border-color: #dce9ff;
+      box-shadow: 0 8px 20px rgba(20, 48, 88, 0.24);
+    }
+
+    .export-fab {
+      background: #4b6c5f;
+      border-color: #dde8e2;
+      box-shadow: 0 8px 20px rgba(22, 51, 41, 0.24);
+      text-align: left;
+    }
+
+    .route-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      background: #137a59;
+      border: 3px solid #e4ffef;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+    }
+
+    .route-dot.start {
+      background: #d84a3a;
+      border-color: #ffe8e4;
+    }
+
+    .checkpoint-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff7844;
+      border: 1px solid #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+
+    @media (max-width: 920px) {
+      .app {
+        display: block;
+      }
+
+      .panel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        border-right: none;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        max-height: min(78dvh, 680px);
+        transition: max-height 0.25s ease;
+      }
+
+      .panel.mobile-collapsed {
+        max-height: 68px;
+        overflow: hidden;
+      }
+
+      .panel.mobile-collapsed .panel-body {
+        display: none;
+      }
+
+      .panel-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding-bottom: 4px;
+        background: linear-gradient(170deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 245, 0.98));
+      }
+
+      .panel-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .panel-body {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .title {
+        font-size: 19px;
+        margin-right: auto;
+      }
+
+      .point-list {
+        max-height: 32vh;
+      }
+
+      .btns {
+        grid-template-columns: 1fr;
+      }
+
+      .filter-action-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      button,
+      .delete-point-btn {
+        min-height: 42px;
+        font-size: 14px;
+      }
+
+      .rest-input {
+        width: 56px;
+      }
+
+      .type-filter-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .type-filter-item {
+        min-height: 36px;
+        font-size: 13px;
+      }
+
+      .type-filter-item input {
+        width: 18px;
+        height: 18px;
+      }
+
+      .floating-tip {
+        left: 12px;
+        right: 12px;
+        top: auto;
+        bottom: 12px;
+        max-width: none;
+        font-size: 11px;
+      }
+
+      .map-fab-group {
+        right: 12px;
+        bottom: 84px;
+        gap: 8px;
+      }
+
+      .undo-fab,
+      .locate-fab,
+      .export-fab {
+        min-width: 82px;
+        min-height: 42px;
+      }
+
+      .map-wrap {
+        height: 100dvh;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .stats,
+      .score-card {
+        grid-template-columns: 1fr;
+      }
+
+      .stat-value {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="controlPanel" class="panel">
+      <div class="panel-head">
+        <h1 class="title">SSTR 2026 路线绘制</h1>
+        <button id="togglePanelBtn" class="panel-toggle secondary" type="button" aria-expanded="true" aria-controls="panelBody">收起面板</button>
+      </div>
+
+      <div id="panelBody" class="panel-body">
+      <section class="card">
+        <p class="subtitle" style="margin-bottom:8px;">按类型筛选点位</p>
+        <div id="typeFilterList" class="type-filter-list"></div>
+      </section>
+
+
+
+      <section class="card">
+        <p class="subtitle" style="margin-bottom:8px;">SSTR2026 积分计算</p>
+        <div class="score-card" style="margin-bottom:8px;">
+          <div class="score-pill">总积分<strong id="scoreTotal">0 pt</strong></div>
+          <div class="score-pill">路线<strong id="distanceKm">0.00 km</strong></div>
+        </div>
+        <button id="expandScoreDetailsBtn" class="secondary" type="button" style="width:100%;margin-bottom:8px;">▼ 展开详情</button>
+        <div id="scoreDetailsContainer" style="display:none;">
+          <ul id="missionList" class="point-list compact-list" style="margin-bottom:8px;"></ul>
+          <p class="subtitle" style="margin-bottom:8px;">スペシャルデザイン版 追加达成</p>
+          <ul id="specialMissionList" class="point-list compact-list" style="margin-bottom:8px;"></ul>
+          <ul id="scoreBreakdown" class="point-list compact-list"></ul>
+        </div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
+          <p class="subtitle" style="margin:0;">路线点列表</p>
+          <button id="generateRouteBtn" class="primary" type="button" style="flex-shrink:0; padding:8px 12px; font-size:13px; border:none; border-radius:10px; cursor:pointer;">🚀 生成路线</button>
+        </div>
+        <ul id="pointList" class="point-list"></ul>
+        <p id="timeSummaryText" class="time-summary" style="margin-top:8px;">请先设置起点并添加路线点。</p>
+      </section>
+
+        <p id="statusText" class="status"></p>
+      </div>
+    </aside>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="floating-tip">无路线点时可直接点击地图设起点；点击橙色站点加入路线。</div>
+      <div class="map-fab-group">
+        <button id="exportMapBtn" class="export-fab" type="button">导出路线图</button>
+        <button id="locateFabBtn" class="locate-fab" type="button">定位</button>
+        <button id="undoFabBtn" class="undo-fab" type="button">撤销</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    const STORAGE_KEY = "sstr-route-2026";
+    const OSRM_BASE_URL = "https://router.project-osrm.org";
+    const SUNRISE_API_URL = "https://api.sunrise-sunset.org/json";
+    const STRAIGHT_ROUTE_SPEED_KMH = 50;
+    const EVENT_DATE_YEAR = 2026;
+    const EVENT_DATE_MONTH = 4;
+    const EVENT_DATE_DAY = 30;
+    const FILTER_CATEGORIES = [
+      "指定道の駅",
+      "指定能登復興応援",
+      "その他の道の駅",
+      "SA/PA",
+      "自然災害伝承碑",
+      "びっくりボーナスポイント（含む岬ポイント）"
+    ];
+    const FILTER_CATEGORY_COLORS = {
+      "指定道の駅": { stroke: "#1766d1", fill: "#4d8eff" },
+      "指定能登復興応援": { stroke: "#c5426d", fill: "#ef6d99" },
+      "その他の道の駅": { stroke: "#d66a34", fill: "#ff8a57" },
+      "SA/PA": { stroke: "#2d8a7c", fill: "#49b8a5" },
+      "自然災害伝承碑": { stroke: "#6b53b8", fill: "#8f78db" },
+      "びっくりボーナスポイント（含む岬ポイント）": { stroke: "#b8860b", fill: "#f2c94c" }
+    };
+    const SPECIAL_MISSION_DEFS = [
+      { id: "michi-no-eki-20", text: "★★★ 道の駅 20ヶ所以上", countKey: "michiNoEkiCount", target: 20 },
+      { id: "designated-5", text: "★★☆ 指定道の駅 5ヶ所以上", countKey: "designatedCount", target: 5 },
+      { id: "disaster-5", text: "★★☆ 自然災害伝承碑 5ヶ所以上", countKey: "disasterCount", target: 5 },
+      { id: "noto-10", text: "★★☆ 指定能登復興応援ポイント 10ヶ所以上", countKey: "notoCount", target: 10 },
+      { id: "surprise-5", text: "★★☆ びっくりボーナスポイント 5ヶ所以上", countKey: "surpriseCount", target: 5 }
+    ];
+
+    const routePoints = [];
+    const routeMarkers = [];
+    const allCheckpointMarkers = [];
+    const selectedCategories = new Set(FILTER_CATEGORIES);
+    const selectedSpecialMissionIds = new Set();
+    let routeLine = null;
+    let checkpointLayer = null;
+    let goalLayer = null;
+    let routeRenderToken = 0;
+    let lastSegmentMinutes = [];
+    let sunriseRequestToken = 0;
+    
+    // 保存所有可用的检查点数据（用于自动生成路线）
+    let allAvailableCheckpoints = [];
+
+    const distanceKmEl = document.getElementById("distanceKm");
+    const pointListEl = document.getElementById("pointList");
+    const statusTextEl = document.getElementById("statusText");
+    const typeFilterListEl = document.getElementById("typeFilterList");
+    const scoreTotalEl = document.getElementById("scoreTotal");
+    const missionListEl = document.getElementById("missionList");
+    const specialMissionListEl = document.getElementById("specialMissionList");
+    const scoreBreakdownEl = document.getElementById("scoreBreakdown");
+    const timeSummaryTextEl = document.getElementById("timeSummaryText");
+    const panelEl = document.getElementById("controlPanel");
+    const togglePanelBtnEl = document.getElementById("togglePanelBtn");
+    const expandScoreDetailsBtnEl = document.getElementById("expandScoreDetailsBtn");
+    const scoreDetailsContainerEl = document.getElementById("scoreDetailsContainer");
+    const generateRouteBtnEl = document.getElementById("generateRouteBtn");
+
+    // 性能优化：缓存计算结果
+    let cachedScoreSummary = null;
+    let cachedDistanceKm = null;
+    let cachedSegmentMinutes = [];
+    let lastRoutePointsLength = 0;
+
+    // 路线与日落缓存
+    let goalSunsetTime = null;
+    let goalSunsetRequestToken = 0;
+    const roadSegmentCache = new Map();
+    const goalSunsetCache = new Map();
+
+    const map = L.map("map", {
+      zoomControl: true,
+      minZoom: 3
+    }).setView([36.2048, 138.2529], 5);
+
+    const mapCanvasRenderer = L.canvas({ padding: 0.5 });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap",
+      crossOrigin: true
+    }).addTo(map);
+
+    function showStatus(message, isError) {
+      statusTextEl.textContent = message;
+      statusTextEl.style.color = isError ? "#b94728" : "#556f65";
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function setPanelCollapsed(collapsed) {
+      if (!panelEl || !togglePanelBtnEl) {
+        return;
+      }
+      panelEl.classList.toggle("mobile-collapsed", collapsed);
+      togglePanelBtnEl.textContent = collapsed ? "展开面板" : "收起面板";
+      togglePanelBtnEl.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }
+
+    function collapsePanelOnMobile() {
+      if (window.matchMedia("(max-width: 920px)").matches) {
+        setPanelCollapsed(true);
+      }
+    }
+
+    function isMisakiPoint(point) {
+      const kind = String(point.kind || "");
+      const startFlag = String(point.start_flag || "0");
+      return kind === "3" && startFlag === "1";
+    }
+
+    function getCheckpointCategory(point) {
+      const kind = String(point.kind || "");
+      const checkpoint = String(point.checkpoint || "0");
+      const startFlag = String(point.start_flag || "0");
+      const tachiyoriFlag = String(point.tachiyori_flag || "0");
+      const id = String(point.id || "");
+      const desc = String(point.description || "");
+
+      if (id.startsWith("G") || kind === "9") {
+        if (id.startsWith("G") || String(point.name || "").includes("千里浜")) {
+          return "ゴール地点";
+        }
+        return "びっくりボーナスポイント";
+      }
+      if (kind === "52") {
+        return "指定能登復興応援";
+      }
+      if (checkpoint === "1") {
+        return "指定道の駅";
+      }
+      // 官方协力点以 tachiyori_flag 标记，优先于普通道の駅
+      if (tachiyoriFlag === "1") {
+        return "協力道の駅";
+      }
+      if (kind === "3" && startFlag === "1") {
+        return "びっくりボーナスポイント";
+      }
+      if (kind === "51") {
+        return "自然災害伝承碑";
+      }
+      if (kind === "0") {
+        return "SA";
+      }
+      if (kind === "1") {
+        return "PA";
+      }
+      if (kind === "2") {
+        if (desc.includes("協力道の駅")) {
+          return "協力道の駅";
+        }
+        return "道の駅";
+      }
+      return "未分类";
+    }
+
+    function getScoreRuleFromPoint(point) {
+      const category = getCheckpointCategory(point);
+
+      if (category === "指定道の駅") {
+        return { category: "指定道の駅", points: 3 };
+      }
+      if (category === "指定能登復興応援") {
+        return { category: "指定能登復興応援ポイント", points: 3 };
+      }
+      if (isMisakiPoint(point)) {
+        return { category: "岬ポイント", points: 3 };
+      }
+      if (category === "びっくりボーナスポイント") {
+        return { category: "びっくりボーナスポイント", points: 3 };
+      }
+      if (category === "自然災害伝承碑") {
+        return { category: "自然災害伝承碑ポイント", points: 1 };
+      }
+      if (category === "SA" || category === "PA") {
+        return { category: "SA/PA", points: 1 };
+      }
+      if (category === "道の駅" || category === "協力道の駅") {
+        return { category: "その他の道の駅", points: 2 };
+      }
+      if (category === "ゴール地点") {
+        return { category: "ゴール地点", points: 0 };
+      }
+      return { category: "非计分点", points: 0 };
+    }
+
+    function getFilterCategoryFromCheckpoint(point) {
+      const category = getCheckpointCategory(point);
+      if (category === "道の駅" || category === "協力道の駅") {
+        return "その他の道の駅";
+      }
+      if (category === "SA" || category === "PA") {
+        return "SA/PA";
+      }
+      if (category === "びっくりボーナスポイント" || category === "岬ポイント") {
+        return "びっくりボーナスポイント（含む岬ポイント）";
+      }
+      return category;
+    }
+
+    function getPointUniqueKey(point) {
+      if (point.id) {
+        return "id:" + point.id;
+      }
+      const lat = Number(point.lat);
+      const lng = Number(point.lng);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        return "coord:" + lat.toFixed(5) + "," + lng.toFixed(5);
+      }
+      return null;
+    }
+
+    function getSpecialMissionProgress(summary, countKey) {
+      return Number(summary && summary[countKey] ? summary[countKey] : 0);
+    }
+
+    function getSelectedSpecialMissionDefs() {
+      return SPECIAL_MISSION_DEFS.filter((mission) => selectedSpecialMissionIds.has(mission.id));
+    }
+
+    function hasUnmetSelectedSpecialMissions(summary) {
+      return getSelectedSpecialMissionDefs().some((mission) => {
+        return getSpecialMissionProgress(summary, mission.countKey) < mission.target;
+      });
+    }
+
+    function pointMatchesCountKey(point, countKey) {
+      const checkpointCategory = getCheckpointCategory(point);
+      if (countKey === "designatedCount") {
+        return getScoreRuleFromPoint(point).category === "指定道の駅";
+      }
+      if (countKey === "notoCount") {
+        return getScoreRuleFromPoint(point).category === "指定能登復興応援ポイント";
+      }
+      if (countKey === "disasterCount") {
+        return checkpointCategory === "自然災害伝承碑";
+      }
+      if (countKey === "surpriseCount") {
+        return checkpointCategory === "びっくりボーナスポイント";
+      }
+      if (countKey === "michiNoEkiCount") {
+        return (
+          checkpointCategory === "道の駅" ||
+          checkpointCategory === "協力道の駅" ||
+          checkpointCategory === "指定道の駅" ||
+          checkpointCategory === "指定能登復興応援"
+        );
+      }
+      return false;
+    }
+
+    function applyPointProgress(summary, point, rule) {
+      if (!summary || !rule || rule.points <= 0) {
+        return;
+      }
+      summary.totalPoints += rule.points;
+      summary.countedStops += 1;
+      summary.categoryCount[rule.category] = (summary.categoryCount[rule.category] || 0) + 1;
+      summary.categoryPoints[rule.category] = (summary.categoryPoints[rule.category] || 0) + rule.points;
+
+      if (rule.category === "指定道の駅") {
+        summary.designatedCount += 1;
+      }
+      if (rule.category === "指定能登復興応援ポイント") {
+        summary.notoCount += 1;
+      }
+
+      const checkpointCategory = getCheckpointCategory(point);
+      if (
+        checkpointCategory === "道の駅" ||
+        checkpointCategory === "協力道の駅" ||
+        checkpointCategory === "指定道の駅" ||
+        checkpointCategory === "指定能登復興応援"
+      ) {
+        summary.michiNoEkiCount += 1;
+      }
+      if (checkpointCategory === "自然災害伝承碑") {
+        summary.disasterCount += 1;
+      }
+      if (checkpointCategory === "びっくりボーナスポイント") {
+        summary.surpriseCount += 1;
+      }
+    }
+
+    function renderTypeFilters() {
+      typeFilterListEl.innerHTML = "";
+      FILTER_CATEGORIES.forEach((category, index) => {
+        const wrapper = document.createElement("label");
+        wrapper.className = "type-filter-item";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = true;
+        input.dataset.category = category;
+        input.id = "filterType" + index;
+        const text = document.createElement("span");
+        text.textContent = category;
+        wrapper.appendChild(input);
+        wrapper.appendChild(text);
+        typeFilterListEl.appendChild(wrapper);
+      });
+    }
+
+    function applyPointTypeFilter() {
+      if (!checkpointLayer) {
+        return;
+      }
+      checkpointLayer.clearLayers();
+      allCheckpointMarkers.forEach((entry) => {
+        if (selectedCategories.has(entry.category)) {
+          checkpointLayer.addLayer(entry.marker);
+        }
+      });
+    }
+
+    function calculateScoreSummary() {
+      // 性能优化：缓存计算结果，避免重复计算
+      if (cachedScoreSummary && lastRoutePointsLength === routePoints.length) {
+        return cachedScoreSummary;
+      }
+
+      const summary = {
+        totalPoints: 0,
+        countedStops: 0,
+        categoryCount: {},
+        categoryPoints: {},
+        designatedCount: 0,
+        notoCount: 0,
+        michiNoEkiCount: 0,
+        disasterCount: 0,
+        surpriseCount: 0
+      };
+
+      const seen = new Set();
+
+      routePoints.forEach((point) => {
+        const rule = getScoreRuleFromPoint(point);
+        const uniqueKey = getPointUniqueKey(point);
+        if (rule.points <= 0) {
+          return;
+        }
+        if (uniqueKey && seen.has(uniqueKey)) {
+          return;
+        }
+        if (uniqueKey) {
+          seen.add(uniqueKey);
+        }
+
+        summary.totalPoints += rule.points;
+        summary.countedStops += 1;
+        summary.categoryCount[rule.category] = (summary.categoryCount[rule.category] || 0) + 1;
+        summary.categoryPoints[rule.category] = (summary.categoryPoints[rule.category] || 0) + rule.points;
+
+        if (rule.category === "指定道の駅") {
+          summary.designatedCount += 1;
+        }
+        if (rule.category === "指定能登復興応援ポイント") {
+          summary.notoCount += 1;
+        }
+
+        const checkpointCategory = getCheckpointCategory(point);
+        if (
+          checkpointCategory === "道の駅" ||
+          checkpointCategory === "協力道の駅" ||
+          checkpointCategory === "指定道の駅" ||
+          checkpointCategory === "指定能登復興応援"
+        ) {
+          summary.michiNoEkiCount += 1;
+        }
+        if (checkpointCategory === "自然災害伝承碑") {
+          summary.disasterCount += 1;
+        }
+        if (checkpointCategory === "びっくりボーナスポイント") {
+          summary.surpriseCount += 1;
+        }
+      });
+
+      // 缓存结果
+      cachedScoreSummary = summary;
+      lastRoutePointsLength = routePoints.length;
+      return summary;
+    }
+
+    function renderScoreBoard() {
+      const summary = calculateScoreSummary();
+      scoreTotalEl.textContent = summary.totalPoints + " pt";
+
+      const missionRows = [
+        {
+          text: "指定道の駅至少 1 个",
+          ok: summary.designatedCount >= 1,
+          suffix: "（当前 " + summary.designatedCount + "）"
+        },
+        {
+          text: "指定能登復興応援ポイント至少 1 个",
+          ok: summary.notoCount >= 1,
+          suffix: "（当前 " + summary.notoCount + "）"
+        },
+        {
+          text: "总积分达到 15 分",
+          ok: summary.totalPoints >= 15,
+          suffix: "（当前 " + summary.totalPoints + "）"
+        }
+      ];
+
+      missionListEl.innerHTML = "";
+      missionRows.forEach((row) => {
+        const li = document.createElement("li");
+        li.className = "point-item";
+        li.innerHTML = row.text + " " + row.suffix + " <span class=\"" + (row.ok ? "mission-ok" : "mission-ng") + "\">" + (row.ok ? "达成" : "未达成") + "</span>";
+        missionListEl.appendChild(li);
+      });
+
+      specialMissionListEl.innerHTML = "";
+      SPECIAL_MISSION_DEFS.forEach((row) => {
+        const current = getSpecialMissionProgress(summary, row.countKey);
+        const ok = current >= row.target;
+        const li = document.createElement("li");
+        li.className = "point-item";
+
+        const label = document.createElement("label");
+        label.className = "special-mission-option";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = selectedSpecialMissionIds.has(row.id);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) {
+            selectedSpecialMissionIds.add(row.id);
+          } else {
+            selectedSpecialMissionIds.delete(row.id);
+          }
+          saveRouteToStorage();
+          renderScoreBoard();
+          renderRoutePointList();
+        });
+
+        const text = document.createElement("span");
+        text.className = "special-mission-text";
+        text.innerHTML =
+          row.text +
+          " （当前 " + current + "） " +
+          "<span class=\"" + (ok ? "mission-ok" : "mission-ng") + "\">" + (ok ? "达成" : "未达成") + "</span>";
+
+        label.appendChild(checkbox);
+        label.appendChild(text);
+        li.appendChild(label);
+        specialMissionListEl.appendChild(li);
+      });
+
+      const orderedCategories = [
+        "指定道の駅",
+        "指定能登復興応援ポイント",
+        "岬ポイント",
+        "その他の道の駅",
+        "自然災害伝承碑ポイント",
+        "SA/PA",
+        "びっくりボーナスポイント"
+      ];
+
+      scoreBreakdownEl.innerHTML = "";
+      orderedCategories.forEach((cat) => {
+        const count = summary.categoryCount[cat] || 0;
+        if (count === 0) {
+          return;
+        }
+        const pts = summary.categoryPoints[cat] || 0;
+        const li = document.createElement("li");
+        li.className = "point-item";
+        li.textContent = cat + "：" + count + " 点位，" + pts + " pt";
+        scoreBreakdownEl.appendChild(li);
+      });
+
+      if (!scoreBreakdownEl.firstChild) {
+        const empty = document.createElement("li");
+        empty.className = "point-item";
+        empty.textContent = "当前路线暂无可计分点。";
+        scoreBreakdownEl.appendChild(empty);
+      }
+    }
+
+    function toRad(deg) {
+      return (deg * Math.PI) / 180;
+    }
+
+    function haversineDistanceKm(a, b) {
+      const r = 6371;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const p1 = toRad(a.lat);
+      const p2 = toRad(b.lat);
+      const x = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(p1) * Math.cos(p2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      const y = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+      return r * y;
+    }
+
+    function getTotalDistanceKm() {
+      // 性能优化：缓存距离计算结果
+      if (cachedDistanceKm !== null && lastRoutePointsLength === routePoints.length) {
+        return cachedDistanceKm;
+      }
+      
+      if (routePoints.length < 2) {
+        cachedDistanceKm = 0;
+        return 0;
+      }
+      let total = 0;
+      for (let i = 1; i < routePoints.length; i += 1) {
+        total += haversineDistanceKm(routePoints[i - 1], routePoints[i]);
+      }
+      cachedDistanceKm = total;
+      return total;
+    }
+
+    function clampRestMinutes(value) {
+      const num = Number(value);
+      if (!Number.isFinite(num) || num < 0) {
+        return 0;
+      }
+      return Math.round(num);
+    }
+
+    function formatTimeLabel(date) {
+      const hh = String(date.getHours()).padStart(2, "0");
+      const mm = String(date.getMinutes()).padStart(2, "0");
+      return hh + ":" + mm;
+    }
+
+    function getStraightSegmentMinutes(points) {
+      if (points.length < 2) {
+        return [];
+      }
+      const mins = [];
+      for (let i = 1; i < points.length; i += 1) {
+        const distanceKm = haversineDistanceKm(points[i - 1], points[i]);
+        const driveMin = (distanceKm / STRAIGHT_ROUTE_SPEED_KMH) * 60;
+        mins.push(Math.max(1, driveMin));
+      }
+      return mins;
+    }
+
+    function getActiveSegmentMinutes() {
+      if (routePoints.length < 2) {
+        return [];
+      }
+      if (lastSegmentMinutes.length === routePoints.length - 1) {
+        return lastSegmentMinutes;
+      }
+      return getStraightSegmentMinutes(routePoints);
+    }
+
+    function calculateTimePlan() {
+      if (!routePoints.length) {
+        return null;
+      }
+      const startSource = new Date(routePoints[0].time || Date.now());
+      if (!Number.isFinite(startSource.getTime())) {
+        return null;
+      }
+      const startDate = new Date(
+        EVENT_DATE_YEAR,
+        EVENT_DATE_MONTH,
+        EVENT_DATE_DAY,
+        startSource.getHours(),
+        startSource.getMinutes(),
+        0,
+        0
+      );
+
+      const segmentMinutes = getActiveSegmentMinutes();
+      const entries = [];
+      let current = new Date(startDate.getTime());
+      let totalRest = 0;
+      const totalDrive = segmentMinutes.reduce((sum, v) => sum + Number(v || 0), 0);
+
+      for (let i = 0; i < routePoints.length; i += 1) {
+        const p = routePoints[i];
+        const arrival = new Date(current.getTime());
+        const restMinutes = clampRestMinutes(p.restMinutes || 0);
+        totalRest += restMinutes;
+        const departure = new Date(arrival.getTime() + restMinutes * 60000);
+        entries.push({
+          arrival: arrival,
+          departure: departure,
+          restMinutes: restMinutes
+        });
+        if (i < segmentMinutes.length) {
+          current = new Date(departure.getTime() + Number(segmentMinutes[i] || 0) * 60000);
+        }
+      }
+
+      return {
+        entries: entries,
+        totalDriveMinutes: totalDrive,
+        totalRestMinutes: totalRest,
+        finishTime: entries.length ? entries[entries.length - 1].departure : startDate
+      };
+    }
+
+    function renderTimeSummary() {
+      const plan = calculateTimePlan();
+      if (!plan) {
+        timeSummaryTextEl.textContent = "请先设置起点并添加路线点。";
+        return;
+      }
+      const driveH = (plan.totalDriveMinutes / 60).toFixed(1);
+      const finish = formatTimeLabel(plan.finishTime);
+      const startText = plan.entries.length ? formatTimeLabel(plan.entries[0].departure) : "--";
+      timeSummaryTextEl.textContent =
+        "起点出发：" + startText +
+        " ｜ 预计终点：" + finish +
+        " ｜ 行驶约 " + driveH + " 小时" +
+        " ｜ 休息 " + plan.totalRestMinutes + " 分钟";
+      
+      // 如果有终点，显示日落时间验证
+      if (routePoints.length >= 2 && goalSunsetTime) {
+        const sunsetText = formatTimeLabel(goalSunsetTime);
+        const reachable = plan.finishTime.getTime() <= goalSunsetTime.getTime();
+        const status = reachable ? "✓ 日落前可达" : "✗ 日落后到达";
+        const statusStyle = reachable ? "color: #0f7b52; font-weight: 700;" : "color: #b94728; font-weight: 700;";
+        timeSummaryTextEl.innerHTML =
+          "起点出发：" + startText +
+          " ｜ 预计终点：" + finish +
+          " ｜ 行驶约 " + driveH + " 小时" +
+          " ｜ 休息 " + plan.totalRestMinutes + " 分钟<br>" +
+          "<span style=\"" + statusStyle + "\">终点日落：" + sunsetText + " " + status + "</span>";
+      }
+    }
+
+    function renderRoutePointList() {
+      const plan = calculateTimePlan();
+      pointListEl.innerHTML = "";
+
+      // 更新顶部生成路线按钮状态
+      if (routePoints.length > 0) {
+        const summary = calculateScoreSummary();
+        const canAutoGenerate =
+          summary.totalPoints < 15 ||
+          summary.designatedCount < 1 ||
+          summary.notoCount < 1 ||
+          hasUnmetSelectedSpecialMissions(summary);
+        
+        if (!canAutoGenerate) {
+          generateRouteBtnEl.disabled = true;
+          generateRouteBtnEl.style.opacity = "0.6";
+          generateRouteBtnEl.style.cursor = "default";
+        } else {
+          generateRouteBtnEl.disabled = false;
+          generateRouteBtnEl.style.opacity = "1";
+          generateRouteBtnEl.style.cursor = "pointer";
+        }
+      } else {
+        generateRouteBtnEl.disabled = true;
+        generateRouteBtnEl.style.opacity = "0.6";
+        generateRouteBtnEl.style.cursor = "default";
+      }
+
+      routePoints.forEach((p, i) => {
+        const item = document.createElement("li");
+        const row = document.createElement("div");
+        const textWrap = document.createElement("div");
+        const text = document.createElement("span");
+        const timeMeta = document.createElement("div");
+        const restControl = document.createElement("label");
+        const restPrefix = document.createElement("span");
+        const restInput = document.createElement("input");
+        const restSuffix = document.createElement("span");
+        const delBtn = document.createElement("button");
+        const scoreRule = getScoreRuleFromPoint(p);
+        const isGoal = getCheckpointCategory(p) === "ゴール地点";
+        const listLabel = i === 0 ? "S" : (isGoal ? "G" : String(i));
+
+        item.className = "point-item";
+        row.className = "point-item-row";
+        textWrap.className = "point-item-text";
+        text.className = "point-item-text";
+
+        timeMeta.className = "point-item-time";
+        if (i === 0) {
+          const startText = listLabel + ". " + (p.name || "自定义点") + " - " + scoreRule.category + " / " + scoreRule.points + "pt";
+          if (plan && plan.entries[i]) {
+            text.textContent = startText + " ｜ " + formatTimeLabel(plan.entries[i].departure);
+            timeMeta.textContent = "起点";
+          } else {
+            text.textContent = startText;
+            timeMeta.textContent = "到离时间会根据起点创建时间自动计算";
+          }
+        } else {
+          const nonStartText = listLabel + ". " + (p.name || "自定义点") + " - " + scoreRule.category + " / " + scoreRule.points + "pt";
+          if (plan && plan.entries[i]) {
+            const entry = plan.entries[i];
+            const isGoal = getCheckpointCategory(p) === "ゴール地点";
+            const timeDisplay = isGoal ? 
+              formatTimeLabel(entry.arrival) : 
+              formatTimeLabel(entry.arrival) + "--" + formatTimeLabel(entry.departure);
+            text.textContent = nonStartText + " ｜ " + timeDisplay;
+            timeMeta.textContent = "";
+          } else {
+            text.textContent = nonStartText;
+            timeMeta.textContent = "到离时间会根据起点创建时间自动计算";
+          }
+        }
+
+        restControl.className = "rest-control";
+        restPrefix.textContent = "休息";
+        restSuffix.textContent = "分";
+
+        restInput.className = "rest-input";
+        restInput.type = "number";
+        restInput.min = "0";
+        restInput.max = "600";
+        restInput.step = "5";
+        restInput.value = String(clampRestMinutes(p.restMinutes || 0));
+        restInput.title = "休息分钟";
+        restInput.addEventListener("change", () => {
+          p.restMinutes = clampRestMinutes(restInput.value);
+          saveRouteToStorage();
+          renderRoutePointList();
+          renderTimeSummary();
+        });
+
+        restControl.appendChild(restPrefix);
+        restControl.appendChild(restInput);
+        restControl.appendChild(restSuffix);
+
+        delBtn.className = "delete-point-btn";
+        delBtn.type = "button";
+        delBtn.textContent = "删除";
+        delBtn.addEventListener("click", () => deletePointAt(i));
+
+        textWrap.appendChild(text);
+        textWrap.appendChild(timeMeta);
+        row.appendChild(textWrap);
+        if (i !== 0 && getCheckpointCategory(p) !== "ゴール地点") {
+          row.appendChild(restControl);
+        }
+        row.appendChild(delBtn);
+        item.appendChild(row);
+        pointListEl.appendChild(item);
+      });
+    }
+
+    async function applySunriseToStartPoint() {
+      if (!routePoints.length) {
+        return;
+      }
+      const requestToken = ++sunriseRequestToken;
+      const start = routePoints[0];
+      const dateText =
+        String(EVENT_DATE_YEAR) + "-" +
+        String(EVENT_DATE_MONTH + 1).padStart(2, "0") + "-" +
+        String(EVENT_DATE_DAY).padStart(2, "0");
+      const url =
+        SUNRISE_API_URL +
+        "?lat=" + encodeURIComponent(String(start.lat)) +
+        "&lng=" + encodeURIComponent(String(start.lng)) +
+        "&date=" + encodeURIComponent(dateText) +
+        "&formatted=0";
+
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error("sunrise http error");
+        }
+        const data = await res.json();
+        if (!data || data.status !== "OK" || !data.results || !data.results.sunrise) {
+          throw new Error("sunrise invalid result");
+        }
+        const sunriseUtc = new Date(data.results.sunrise);
+        if (!Number.isFinite(sunriseUtc.getTime())) {
+          throw new Error("sunrise invalid date");
+        }
+
+        if (requestToken !== sunriseRequestToken || !routePoints.length) {
+          return;
+        }
+
+        const sunriseLocal = new Date(
+          EVENT_DATE_YEAR,
+          EVENT_DATE_MONTH,
+          EVENT_DATE_DAY,
+          sunriseUtc.getHours(),
+          sunriseUtc.getMinutes(),
+          0,
+          0
+        );
+        routePoints[0].time = sunriseLocal.toISOString();
+        saveRouteToStorage();
+        renderRoutePointList();
+        renderTimeSummary();
+        showStatus("起点出发时间已自动设置为起点日出时间", false);
+      } catch (err) {
+        showStatus("获取起点日出时间失败，已保留当前起点时间", true);
+      }
+    }
+
+    async function getGoalSunsetTime() {
+      if (routePoints.length < 2) {
+        goalSunsetTime = null;
+        return null;
+      }
+
+      const goal = routePoints[routePoints.length - 1];
+      if (getCheckpointCategory(goal) !== "ゴール地点") {
+        goalSunsetTime = null;
+        return null;
+      }
+
+      const dateText =
+        String(EVENT_DATE_YEAR) + "-" +
+        String(EVENT_DATE_MONTH + 1).padStart(2, "0") + "-" +
+        String(EVENT_DATE_DAY).padStart(2, "0");
+      const goalKey = Number(goal.lat).toFixed(4) + "," + Number(goal.lng).toFixed(4) + "|" + dateText;
+
+      if (goalSunsetCache.has(goalKey)) {
+        goalSunsetTime = goalSunsetCache.get(goalKey);
+        renderTimeSummary();
+        return goalSunsetTime;
+      }
+
+      const requestToken = ++goalSunsetRequestToken;
+      const url =
+        SUNRISE_API_URL +
+        "?lat=" + encodeURIComponent(String(goal.lat)) +
+        "&lng=" + encodeURIComponent(String(goal.lng)) +
+        "&date=" + encodeURIComponent(dateText) +
+        "&formatted=0";
+
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error("sunset http error");
+        }
+        const data = await res.json();
+        if (!data || data.status !== "OK" || !data.results || !data.results.sunset) {
+          throw new Error("sunset invalid result");
+        }
+
+        const sunsetUtc = new Date(data.results.sunset);
+        if (!Number.isFinite(sunsetUtc.getTime())) {
+          throw new Error("sunset invalid date");
+        }
+
+        if (requestToken !== goalSunsetRequestToken || routePoints.length < 2) {
+          return null;
+        }
+
+        const sunsetLocal = new Date(
+          EVENT_DATE_YEAR,
+          EVENT_DATE_MONTH,
+          EVENT_DATE_DAY,
+          sunsetUtc.getHours(),
+          sunsetUtc.getMinutes(),
+          0,
+          0
+        );
+        goalSunsetTime = sunsetLocal;
+        goalSunsetCache.set(goalKey, sunsetLocal);
+        renderTimeSummary();
+        return sunsetLocal;
+      } catch (err) {
+        goalSunsetTime = null;
+        return null;
+      }
+    }
+
+    function getStraightRouteData(points) {
+      const latLngs = points.map((p) => [p.lat, p.lng]);
+      return {
+        latLngs: latLngs,
+        distanceKm: getTotalDistanceKm(),
+        segmentMinutes: getStraightSegmentMinutes(points)
+      };
+    }
+
+    async function fetchRoadSegment(fromPoint, toPoint) {
+      const fromLng = Number(fromPoint.lng);
+      const fromLat = Number(fromPoint.lat);
+      const toLng = Number(toPoint.lng);
+      const toLat = Number(toPoint.lat);
+
+      const cacheKey =
+        fromLat.toFixed(5) + "," + fromLng.toFixed(5) + "->" + toLat.toFixed(5) + "," + toLng.toFixed(5);
+      if (roadSegmentCache.has(cacheKey)) {
+        return roadSegmentCache.get(cacheKey);
+      }
+
+      const url = OSRM_BASE_URL +
+        "/route/v1/driving/" +
+        fromLng + "," + fromLat + ";" + toLng + "," + toLat +
+        "?overview=full&geometries=geojson";
+
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("routing http error");
+      }
+      const data = await res.json();
+      if (!data || !Array.isArray(data.routes) || data.routes.length === 0) {
+        throw new Error("routing empty result");
+      }
+      const route = data.routes[0];
+      if (!route.geometry || !Array.isArray(route.geometry.coordinates)) {
+        throw new Error("routing invalid geometry");
+      }
+
+      const latLngs = route.geometry.coordinates.map((coord) => [coord[1], coord[0]]);
+      const segmentResult = {
+        latLngs: latLngs,
+        distanceKm: Number(route.distance || 0) / 1000,
+        durationMinutes: Number(route.duration || 0) / 60
+      };
+
+      roadSegmentCache.set(cacheKey, segmentResult);
+      if (roadSegmentCache.size > 400) {
+        const oldestKey = roadSegmentCache.keys().next().value;
+        roadSegmentCache.delete(oldestKey);
+      }
+
+      return segmentResult;
+    }
+
+    async function getRoadRouteData(points, renderToken) {
+      if (points.length < 2) {
+        return getStraightRouteData(points);
+      }
+
+      const mergedLatLngs = [];
+      let totalKm = 0;
+      const segmentMinutes = [];
+
+      for (let i = 1; i < points.length; i += 1) {
+        if (renderToken !== routeRenderToken) {
+          return null;
+        }
+        const segment = await fetchRoadSegment(points[i - 1], points[i]);
+        if (i === 1) {
+          mergedLatLngs.push(...segment.latLngs);
+        } else {
+          mergedLatLngs.push(...segment.latLngs.slice(1));
+        }
+        totalKm += segment.distanceKm;
+        segmentMinutes.push(Number(segment.durationMinutes || 0));
+      }
+
+      return {
+        latLngs: mergedLatLngs,
+        distanceKm: totalKm,
+        segmentMinutes: segmentMinutes
+      };
+    }
+
+    function createRouteIcon(index, isStart) {
+      const extraClass = isStart ? " start" : "";
+      const label = isStart ? "S" : String(index);
+      return L.divIcon({
+        className: "",
+        html: '<div class="route-dot' + extraClass + '">' + label + "</div>",
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+    }
+
+    function createGoalPointIcon() {
+      return L.divIcon({
+        className: "",
+        html: '<div class="route-dot start">G</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
+    }
+
+    async function redrawRoute() {
+      const currentToken = ++routeRenderToken;
+      // 性能优化：清除缓存
+      cachedScoreSummary = null;
+      cachedDistanceKm = null;
+      
+      routeMarkers.forEach((marker) => map.removeLayer(marker));
+      routeMarkers.length = 0;
+      lastSegmentMinutes = [];
+
+      if (routeLine) {
+        map.removeLayer(routeLine);
+      }
+
+      routePoints.forEach((p, i) => {
+        const isStart = i === 0;
+        const isGoal = getCheckpointCategory(p) === "ゴール地点";
+        const markerNumber = isStart ? 0 : i;
+        const marker = L.marker([p.lat, p.lng], {
+          icon: isGoal ? createGoalPointIcon() : createRouteIcon(markerNumber, isStart),
+          zIndexOffset: isStart ? 50000 : (isGoal ? 40000 : 10000)
+        })
+          .addTo(map)
+          .bindPopup(
+            (isStart ? "起点" : (isGoal ? "终点" : "第 " + i + " 点")) +
+            "<BR>" +
+            (p.name || "自定义点") +
+            "<br>" +
+            getCheckpointCategory(p) +
+            "<br>" +
+            (getScoreRuleFromPoint(p).category || "非计分点") +
+            "<br><button type=\"button\" class=\"delete-route-point-popup\">删除该点</button>"
+          );
+        marker.on("popupopen", () => {
+          const popupEl = marker.getPopup() && marker.getPopup().getElement();
+          if (!popupEl) {
+            return;
+          }
+          const btn = popupEl.querySelector(".delete-route-point-popup");
+          if (!btn || btn.dataset.bound === "true") {
+            return;
+          }
+          btn.dataset.bound = "true";
+          btn.addEventListener("click", () => {
+            deletePointAt(i);
+            map.closePopup();
+          });
+        });
+        routeMarkers.push(marker);
+      });
+
+      if (routePoints.length < 2) {
+        distanceKmEl.textContent = "0.00 km";
+        renderRoutePointList();
+        renderTimeSummary();
+        renderScoreBoard();
+        saveRouteToStorage();
+        return;
+      }
+
+      distanceKmEl.textContent = "计算中...";
+      let routeData = null;
+      try {
+        routeData = await getRoadRouteData(routePoints, currentToken);
+      } catch (err) {
+        routeData = null;
+      }
+
+      if (currentToken !== routeRenderToken) {
+        return;
+      }
+
+      if (!routeData || !Array.isArray(routeData.latLngs) || routeData.latLngs.length < 2) {
+        routeData = getStraightRouteData(routePoints);
+        showStatus("道路路线计算失败，已回退为直线连接", true);
+      }
+
+      if (Array.isArray(routeData.segmentMinutes)) {
+        lastSegmentMinutes = routeData.segmentMinutes.slice();
+      } else {
+        lastSegmentMinutes = getStraightSegmentMinutes(routePoints);
+      }
+
+      routeLine = L.polyline(routeData.latLngs, {
+        color: "#0f8a5f",
+        weight: 4,
+        opacity: 0.88,
+        lineJoin: "round"
+      }).addTo(map);
+      distanceKmEl.textContent = routeData.distanceKm.toFixed(2) + " km";
+
+      renderRoutePointList();
+      renderTimeSummary();
+
+      renderScoreBoard();
+      saveRouteToStorage();
+      
+      // 获取终点日落时间用于验证
+      getGoalSunsetTime();
+    }
+
+    function reorderRoutePointsByDistance() {
+      if (routePoints.length <= 2) {
+        return;
+      }
+
+      const start = routePoints[0];
+      const rest = routePoints.slice(1);
+      const goalPoints = rest.filter((p) => getCheckpointCategory(p) === "ゴール地点");
+      const preferredGoal = goalPoints.length ? goalPoints[goalPoints.length - 1] : null;
+
+      const candidates = rest.filter((p) => p !== preferredGoal && getCheckpointCategory(p) !== "ゴール地点");
+      const ordered = [];
+      let current = start;
+
+      while (candidates.length > 0) {
+        let bestIndex = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < candidates.length; i += 1) {
+          const d = haversineDistanceKm(current, candidates[i]);
+          if (d < bestDist) {
+            bestDist = d;
+            bestIndex = i;
+          }
+        }
+        const next = candidates.splice(bestIndex, 1)[0];
+        ordered.push(next);
+        current = next;
+      }
+
+      routePoints.length = 0;
+      routePoints.push(start, ...ordered);
+      if (preferredGoal) {
+        routePoints.push(preferredGoal);
+      }
+    }
+
+    function addPoint(lat, lng, sourceName, meta) {
+      routePoints.push({
+        lat: Number(lat),
+        lng: Number(lng),
+        name: sourceName || "地图点击点",
+        time: new Date().toISOString(),
+        id: meta && meta.id ? meta.id : null,
+        kind: meta && meta.kind ? String(meta.kind) : null,
+        checkpoint: meta && meta.checkpoint ? String(meta.checkpoint) : "0",
+        start_flag: meta && meta.start_flag ? String(meta.start_flag) : "0",
+        tachiyori_flag: meta && meta.tachiyori_flag ? String(meta.tachiyori_flag) : "0",
+        prefecture: meta && meta.prefecture ? meta.prefecture : null,
+        address: meta && meta.address ? meta.address : null,
+        description: meta && meta.description ? meta.description : null,
+        add_info: meta && meta.add_info ? meta.add_info : null,
+        restMinutes: 0
+      });
+      reorderRoutePointsByDistance();
+      redrawRoute();
+      if (routePoints.length === 1) {
+        applySunriseToStartPoint();
+      }
+      collapsePanelOnMobile();
+    }
+
+    function setStartPoint(lat, lng, sourceName, meta) {
+      routePoints.length = 0;
+      routePoints.push({
+        lat: Number(lat),
+        lng: Number(lng),
+        name: sourceName || "起点",
+        time: new Date().toISOString(),
+        id: meta && meta.id ? meta.id : null,
+        kind: meta && meta.kind ? String(meta.kind) : null,
+        checkpoint: meta && meta.checkpoint ? String(meta.checkpoint) : "0",
+        start_flag: meta && meta.start_flag ? String(meta.start_flag) : "0",
+        tachiyori_flag: meta && meta.tachiyori_flag ? String(meta.tachiyori_flag) : "0",
+        prefecture: meta && meta.prefecture ? meta.prefecture : null,
+        address: meta && meta.address ? meta.address : null,
+        description: meta && meta.description ? meta.description : null,
+        add_info: meta && meta.add_info ? meta.add_info : null,
+        restMinutes: 0
+      });
+      redrawRoute();
+      applySunriseToStartPoint();
+      collapsePanelOnMobile();
+      showStatus("起点已设置，可继续添加后续路线点", false);
+    }
+
+    function removeLastPoint() {
+      if (routePoints.length === 0) {
+        showStatus("没有可撤销的点", true);
+        return;
+      }
+      routePoints.pop();
+      redrawRoute();
+      showStatus("已撤销最后一个点", false);
+    }
+
+    async function autoGenerateRoute() {
+      if (routePoints.length === 0) {
+        showStatus("请先设置起点", true);
+        return;
+      }
+
+      if (allAvailableCheckpoints.length === 0) {
+        showStatus("检查点数据未加载完成，请稍后重试", true);
+        return;
+      }
+
+      function appendCheckpointToRoute(cp, fallbackName) {
+        routePoints.push({
+          lat: Number(cp.lat),
+          lng: Number(cp.lng),
+          name: cp.name || fallbackName,
+          time: new Date().toISOString(),
+          id: cp.id || null,
+          kind: cp.kind ? String(cp.kind) : null,
+          checkpoint: cp.checkpoint ? String(cp.checkpoint) : "0",
+          start_flag: cp.start_flag ? String(cp.start_flag) : "0",
+          tachiyori_flag: cp.tachiyori_flag ? String(cp.tachiyori_flag) : "0",
+          prefecture: cp.prefecture || null,
+          address: cp.address || null,
+          description: cp.description || null,
+          add_info: cp.add_info || null,
+          restMinutes: 0
+        });
+      }
+
+      // 先移除已有终点，确保后续始终“最后到终点”
+      const removedGoals = routePoints.filter((p) => getCheckpointCategory(p) === "ゴール地点");
+      if (removedGoals.length > 0) {
+        for (let i = routePoints.length - 1; i >= 0; i -= 1) {
+          if (getCheckpointCategory(routePoints[i]) === "ゴール地点") {
+            routePoints.splice(i, 1);
+          }
+        }
+      }
+
+      function restoreRemovedGoals() {
+        if (!removedGoals.length) {
+          return;
+        }
+        removedGoals.forEach((g) => appendCheckpointToRoute(g, "终点"));
+      }
+
+      const anchor = routePoints[routePoints.length - 1];
+
+      // 终点优先：用用户已有终点；否则选离当前锚点最近的终点
+      let targetGoal = removedGoals.length ? removedGoals[removedGoals.length - 1] : null;
+      if (!targetGoal) {
+        const goalCandidates = allAvailableCheckpoints.filter((cp) => getCheckpointCategory(cp) === "ゴール地点");
+        if (!goalCandidates.length) {
+          restoreRemovedGoals();
+          showStatus("未找到终点点位，无法自动补充", true);
+          return;
+        }
+        goalCandidates.sort((a, b) => haversineDistanceKm(anchor, a) - haversineDistanceKm(anchor, b));
+        targetGoal = goalCandidates[0];
+      }
+
+      // 已在路线中的 key（不含终点）
+      const existingKeys = new Set();
+      routePoints.forEach((p) => {
+        const key = getPointUniqueKey(p);
+        if (key) {
+          existingKeys.add(key);
+        }
+      });
+
+      // 当前已达成情况（不包含终点）
+      const currentSummary = calculateScoreSummary();
+      const progress = {
+        totalPoints: currentSummary.totalPoints,
+        countedStops: currentSummary.countedStops,
+        categoryCount: Object.assign({}, currentSummary.categoryCount),
+        categoryPoints: Object.assign({}, currentSummary.categoryPoints),
+        designatedCount: currentSummary.designatedCount,
+        notoCount: currentSummary.notoCount,
+        michiNoEkiCount: currentSummary.michiNoEkiCount,
+        disasterCount: currentSummary.disasterCount,
+        surpriseCount: currentSummary.surpriseCount
+      };
+      let pointsNeeded = Math.max(0, 15 - progress.totalPoints);
+
+      // 1) 先导航到终点：拿到锚点->终点的主路线
+      let routeLatLngs = [];
+      try {
+        const segment = await fetchRoadSegment(anchor, targetGoal);
+        routeLatLngs = Array.isArray(segment.latLngs) ? segment.latLngs : [];
+      } catch (err) {
+        routeLatLngs = [[anchor.lat, anchor.lng], [targetGoal.lat, targetGoal.lng]];
+      }
+
+      if (routeLatLngs.length < 2) {
+        routeLatLngs = [[anchor.lat, anchor.lng], [targetGoal.lat, targetGoal.lng]];
+      }
+
+      const routeShape = routeLatLngs.map((ll) => ({ lat: Number(ll[0]), lng: Number(ll[1]) }));
+
+      // 分段近似索引：先定位最可能的路线段，再做局部扫描
+      const ROUTE_BUCKET_SIZE = 24;
+      const routeBuckets = [];
+      for (let start = 0; start < routeShape.length; start += ROUTE_BUCKET_SIZE) {
+        const end = Math.min(routeShape.length - 1, start + ROUTE_BUCKET_SIZE - 1);
+        let latSum = 0;
+        let lngSum = 0;
+        let count = 0;
+        for (let i = start; i <= end; i += 1) {
+          latSum += routeShape[i].lat;
+          lngSum += routeShape[i].lng;
+          count += 1;
+        }
+        routeBuckets.push({
+          start: start,
+          end: end,
+          center: { lat: latSum / count, lng: lngSum / count }
+        });
+      }
+
+      function scanRouteRange(point, startIndex, endIndex) {
+        let minDist = Infinity;
+        let minIndex = startIndex;
+        for (let i = startIndex; i <= endIndex; i += 1) {
+          const d = haversineDistanceKm(point, routeShape[i]);
+          if (d < minDist) {
+            minDist = d;
+            minIndex = i;
+          }
+        }
+        return { distKm: minDist, routeIndex: minIndex };
+      }
+
+      function getNearestRouteInfo(point) {
+        if (routeShape.length <= 80 || routeBuckets.length <= 1) {
+          return scanRouteRange(point, 0, routeShape.length - 1);
+        }
+
+        // 先用桶中心点找最近桶
+        let nearestBucketIndex = 0;
+        let nearestBucketDist = Infinity;
+        for (let i = 0; i < routeBuckets.length; i += 1) {
+          const d = haversineDistanceKm(point, routeBuckets[i].center);
+          if (d < nearestBucketDist) {
+            nearestBucketDist = d;
+            nearestBucketIndex = i;
+          }
+        }
+
+        // 扩展到相邻桶做局部精扫（近似索引）
+        const leftBucket = Math.max(0, nearestBucketIndex - 1);
+        const rightBucket = Math.min(routeBuckets.length - 1, nearestBucketIndex + 1);
+        const scanStart = routeBuckets[leftBucket].start;
+        const scanEnd = routeBuckets[rightBucket].end;
+        return scanRouteRange(point, scanStart, scanEnd);
+      }
+
+      function collectNearbyCandidates(corridorKm) {
+        const nearby = [];
+        allAvailableCheckpoints.forEach((cp) => {
+          if (getCheckpointCategory(cp) === "ゴール地点") {
+            return;
+          }
+          const key = getPointUniqueKey(cp);
+          if (key && existingKeys.has(key)) {
+            return;
+          }
+          const rule = getScoreRuleFromPoint(cp);
+          if (rule.points <= 0) {
+            return;
+          }
+
+          const info = getNearestRouteInfo(cp);
+          if (info.distKm <= corridorKm) {
+            nearby.push({ cp: cp, rule: rule, key: key, distKm: info.distKm, routeIndex: info.routeIndex });
+          }
+        });
+        return nearby;
+      }
+
+      // 2) 在主路线附近找点，半径不够则放宽
+      let nearbyCandidates = collectNearbyCandidates(12);
+      if (!nearbyCandidates.length) {
+        nearbyCandidates = collectNearbyCandidates(25);
+      }
+
+      const selected = [];
+      const selectedKeys = new Set();
+
+      function applyPicked(item) {
+        selected.push(item);
+        if (item.key) {
+          selectedKeys.add(item.key);
+        }
+        applyPointProgress(progress, item.cp, item.rule);
+        pointsNeeded = Math.max(0, 15 - progress.totalPoints);
+      }
+
+      function pickOneGlobalByCategory(categoryName) {
+        const pool = allAvailableCheckpoints
+          .filter((cp) => {
+            if (getCheckpointCategory(cp) === "ゴール地点") {
+              return false;
+            }
+            const key = getPointUniqueKey(cp);
+            if (key && existingKeys.has(key)) {
+              return false;
+            }
+            if (key && selectedKeys.has(key)) {
+              return false;
+            }
+            const rule = getScoreRuleFromPoint(cp);
+            return rule.category === categoryName;
+          })
+          .map((cp) => {
+            const info = getNearestRouteInfo(cp);
+            return {
+              cp: cp,
+              rule: getScoreRuleFromPoint(cp),
+              key: getPointUniqueKey(cp),
+              distKm: info.distKm,
+              routeIndex: info.routeIndex
+            };
+          })
+          .sort((a, b) => {
+            if (a.distKm !== b.distKm) {
+              return a.distKm - b.distKm;
+            }
+            return a.routeIndex - b.routeIndex;
+          });
+
+        if (!pool.length) {
+          return null;
+        }
+
+        const picked = pool[0];
+        applyPicked(picked);
+        return picked;
+      }
+
+      function pickOne(predicate) {
+        const pool = nearbyCandidates
+          .filter((item) => predicate(item) && (!item.key || !selectedKeys.has(item.key)))
+          .sort((a, b) => {
+            if (a.distKm !== b.distKm) {
+              return a.distKm - b.distKm;
+            }
+            return a.routeIndex - b.routeIndex;
+          });
+        if (!pool.length) {
+          return null;
+        }
+        const picked = pool[0];
+        applyPicked(picked);
+        return picked;
+      }
+
+      function pickOneGlobalByCountKey(countKey) {
+        const pool = allAvailableCheckpoints
+          .filter((cp) => {
+            if (getCheckpointCategory(cp) === "ゴール地点") {
+              return false;
+            }
+            const key = getPointUniqueKey(cp);
+            if (key && existingKeys.has(key)) {
+              return false;
+            }
+            if (key && selectedKeys.has(key)) {
+              return false;
+            }
+            const rule = getScoreRuleFromPoint(cp);
+            return rule.points > 0 && pointMatchesCountKey(cp, countKey);
+          })
+          .map((cp) => {
+            const info = getNearestRouteInfo(cp);
+            return {
+              cp: cp,
+              rule: getScoreRuleFromPoint(cp),
+              key: getPointUniqueKey(cp),
+              distKm: info.distKm,
+              routeIndex: info.routeIndex
+            };
+          })
+          .sort((a, b) => {
+            if (a.distKm !== b.distKm) {
+              return a.distKm - b.distKm;
+            }
+            return a.routeIndex - b.routeIndex;
+          });
+
+        if (!pool.length) {
+          return null;
+        }
+
+        const picked = pool[0];
+        applyPicked(picked);
+        return picked;
+      }
+
+      const requiredTargets = new Map();
+
+      function requireTarget(countKey, target) {
+        requiredTargets.set(countKey, Math.max(requiredTargets.get(countKey) || 0, target));
+      }
+
+      requireTarget("designatedCount", 1);
+      requireTarget("notoCount", 1);
+      getSelectedSpecialMissionDefs().forEach((mission) => {
+        requireTarget(mission.countKey, mission.target);
+      });
+
+      Array.from(requiredTargets.entries()).forEach(([countKey, target]) => {
+        while (getSpecialMissionProgress(progress, countKey) < target) {
+          const got =
+            pickOne((item) => pointMatchesCountKey(item.cp, countKey)) ||
+            pickOneGlobalByCountKey(countKey);
+          if (!got) {
+            break;
+          }
+        }
+      });
+
+      const selectedMissionDefs = getSelectedSpecialMissionDefs();
+      const unmetSelectedMissions = selectedMissionDefs.filter((mission) => {
+        return getSpecialMissionProgress(progress, mission.countKey) < mission.target;
+      });
+      const unmetBaseRequirements = [];
+      if (progress.designatedCount < 1 && !selectedMissionDefs.some((mission) => mission.countKey === "designatedCount")) {
+        unmetBaseRequirements.push("指定道の駅至少 1 个");
+      }
+      if (progress.notoCount < 1 && !selectedMissionDefs.some((mission) => mission.countKey === "notoCount")) {
+        unmetBaseRequirements.push("指定能登復興応援ポイント至少 1 个");
+      }
+
+      if (unmetSelectedMissions.length || unmetBaseRequirements.length) {
+        restoreRemovedGoals();
+        const miss = unmetBaseRequirements.concat(unmetSelectedMissions.map((mission) => mission.text));
+        showStatus("自动补充失败：无法满足目标（" + miss.join("，") + "）", true);
+        return;
+      }
+
+      // 再补分到 15 分（优先分高且离主路线近）
+      if (pointsNeeded > 0) {
+        const remain = nearbyCandidates
+          .filter((item) => !item.key || !selectedKeys.has(item.key))
+          .sort((a, b) => {
+            if (b.rule.points !== a.rule.points) {
+              return b.rule.points - a.rule.points;
+            }
+            if (a.distKm !== b.distKm) {
+              return a.distKm - b.distKm;
+            }
+            return a.routeIndex - b.routeIndex;
+          });
+
+        for (let i = 0; i < remain.length && pointsNeeded > 0; i += 1) {
+          const item = remain[i];
+          applyPicked(item);
+        }
+      }
+
+      // 按主路线位置排序，保证“沿路加点”
+      selected.sort((a, b) => a.routeIndex - b.routeIndex);
+
+      selected.forEach((item) => {
+        appendCheckpointToRoute(item.cp, "自动补充点");
+      });
+
+      // 最后到终点
+      appendCheckpointToRoute(targetGoal, "终点");
+
+      // 加点后按远近重排（起点固定，终点保持在最后）
+      reorderRoutePointsByDistance();
+
+      redrawRoute();
+      collapsePanelOnMobile();
+
+      const finalSummary = calculateScoreSummary();
+      const reqOk =
+        finalSummary.designatedCount >= 1 &&
+        finalSummary.notoCount >= 1 &&
+        !hasUnmetSelectedSpecialMissions(finalSummary);
+      const reqText = reqOk ? "，目标已满足" : "，但目标仍未完全满足";
+      showStatus(
+        "已沿终点主路线补充 " + selected.length + " 个点，当前总积分 " + finalSummary.totalPoints + " pt，终点已追加" + reqText,
+        !reqOk
+      );
+    }
+
+    function deletePointAt(index) {
+      if (index < 0 || index >= routePoints.length) {
+        return;
+      }
+      routePoints.splice(index, 1);
+      redrawRoute();
+      showStatus("已删除指定点", false);
+    }
+
+    function fitToRoute() {
+      if (routePoints.length === 0) {
+        showStatus("路线为空，无法定位", true);
+        return;
+      }
+      const bounds = L.latLngBounds(routePoints.map((p) => [p.lat, p.lng]));
+      map.fitBounds(bounds.pad(0.2));
+    }
+
+    function saveRouteToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        routePoints: routePoints,
+        selectedSpecialMissionIds: Array.from(selectedSpecialMissionIds)
+      }));
+    }
+
+    function restoreRouteFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+      try {
+        const parsed = JSON.parse(raw);
+        const points = Array.isArray(parsed) ? parsed : parsed && Array.isArray(parsed.routePoints) ? parsed.routePoints : null;
+        const savedMissionIds =
+          parsed && Array.isArray(parsed.selectedSpecialMissionIds) ? parsed.selectedSpecialMissionIds : [];
+        selectedSpecialMissionIds.clear();
+        savedMissionIds.forEach((id) => {
+          if (SPECIAL_MISSION_DEFS.some((mission) => mission.id === id)) {
+            selectedSpecialMissionIds.add(id);
+          }
+        });
+        if (!points) {
+          return;
+        }
+        routePoints.length = 0;
+        points.forEach((p) => {
+          if (Number.isFinite(Number(p.lat)) && Number.isFinite(Number(p.lng))) {
+            routePoints.push({
+              lat: Number(p.lat),
+              lng: Number(p.lng),
+              name: p.name || "恢复点",
+              time: p.time || new Date().toISOString(),
+              id: p.id || null,
+              kind: p.kind ? String(p.kind) : null,
+              checkpoint: p.checkpoint ? String(p.checkpoint) : "0",
+              start_flag: p.start_flag ? String(p.start_flag) : "0",
+              tachiyori_flag: p.tachiyori_flag ? String(p.tachiyori_flag) : "0",
+              prefecture: p.prefecture || null,
+              address: p.address || null,
+              description: p.description || null,
+              add_info: p.add_info || null,
+              restMinutes: clampRestMinutes(p.restMinutes || 0)
+            });
+          }
+        });
+        redrawRoute();
+        showStatus("已恢复上次编辑路线", false);
+      } catch (err) {
+        showStatus("本地路线恢复失败", true);
+      }
+    }
+
+    async function exportRouteMapImage() {
+      if (routePoints.length === 0) {
+        showStatus("路线为空，无法导出路线图", true);
+        return;
+      }
+
+      if (!window.html2canvas) {
+        showStatus("路线图导出组件加载失败，请刷新后重试", true);
+        return;
+      }
+
+      try {
+        showStatus("正在生成路线图，请稍候...", false);
+        const mapEl = document.getElementById("map");
+        map.closePopup();
+        
+        // 手机优化：限制最大尺寸避免内存溢出
+        const maxWidth = window.innerWidth;
+        const maxHeight = window.innerHeight;
+        const isMobile = window.matchMedia("(max-width: 920px)").matches;
+        const scale = isMobile ? Math.min(1, 1024 / maxWidth) : (window.devicePixelRatio > 1 ? 2 : 1);
+        
+        const canvas = await window.html2canvas(mapEl, {
+          backgroundColor: null,
+          useCORS: true,
+          logging: false,
+          scale: scale,
+          maxWidth: isMobile ? 1024 : undefined,
+          maxHeight: isMobile ? 1024 : undefined,
+          allowTaint: true
+        });
+
+        // html2canvas sometimes misses Leaflet SVG paths, so draw the route explicitly.
+        if (routeLine && typeof routeLine.getLatLngs === "function") {
+          const rawLatLngs = routeLine.getLatLngs();
+          const routeLatLngs = [];
+          const stack = Array.isArray(rawLatLngs) ? rawLatLngs.slice() : [];
+          while (stack.length > 0) {
+            const item = stack.shift();
+            if (Array.isArray(item)) {
+              stack.unshift(...item);
+            } else if (item && Number.isFinite(item.lat) && Number.isFinite(item.lng)) {
+              routeLatLngs.push(item);
+            }
+          }
+
+          if (routeLatLngs.length >= 2) {
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              const scaleX = canvas.width / mapEl.clientWidth;
+              const scaleY = canvas.height / mapEl.clientHeight;
+              ctx.save();
+              ctx.lineJoin = "round";
+              ctx.lineCap = "round";
+              ctx.strokeStyle = "#0f8a5f";
+              ctx.globalAlpha = 0.88;
+              ctx.lineWidth = 4 * Math.max(scaleX, scaleY);
+              ctx.beginPath();
+
+              routeLatLngs.forEach((latLng, idx) => {
+                const p = map.latLngToContainerPoint(latLng);
+                const x = p.x * scaleX;
+                const y = p.y * scaleY;
+                if (idx === 0) {
+                  ctx.moveTo(x, y);
+                } else {
+                  ctx.lineTo(x, y);
+                }
+              });
+
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+        }
+
+        const watermarkCtx = canvas.getContext("2d");
+        if (watermarkCtx) {
+          const summary = calculateScoreSummary();
+          const exportNow = new Date();
+          const dateText =
+            exportNow.getFullYear() + "-" +
+            String(exportNow.getMonth() + 1).padStart(2, "0") + "-" +
+            String(exportNow.getDate()).padStart(2, "0") + " " +
+            String(exportNow.getHours()).padStart(2, "0") + ":" +
+            String(exportNow.getMinutes()).padStart(2, "0");
+          const distanceText = distanceKmEl.textContent || "0.00 km";
+          const watermarkLines = [
+            "SSTR 2026 Route",
+            "时间: " + dateText,
+            "里程: " + distanceText,
+            "总积分: " + summary.totalPoints + " pt",
+            "点位数: " + routePoints.length
+          ];
+
+          const fontSize = Math.max(14, Math.round(canvas.width * 0.014));
+          const lineHeight = Math.round(fontSize * 1.45);
+          const pad = Math.round(fontSize * 0.75);
+          const boxX = pad;
+          const boxY = pad;
+
+          watermarkCtx.save();
+          watermarkCtx.font = "600 " + fontSize + "px 'Noto Sans SC', sans-serif";
+          const maxLineWidth = watermarkLines.reduce((maxW, line) => {
+            return Math.max(maxW, watermarkCtx.measureText(line).width);
+          }, 0);
+          const boxW = Math.ceil(maxLineWidth + pad * 2);
+          const boxH = Math.ceil(lineHeight * watermarkLines.length + pad * 1.6);
+
+          watermarkCtx.fillStyle = "rgba(20, 35, 31, 0.62)";
+          watermarkCtx.fillRect(boxX, boxY, boxW, boxH);
+          watermarkCtx.strokeStyle = "rgba(224, 241, 233, 0.85)";
+          watermarkCtx.lineWidth = Math.max(1, Math.round(fontSize * 0.12));
+          watermarkCtx.strokeRect(boxX, boxY, boxW, boxH);
+
+          watermarkCtx.fillStyle = "#f4fff9";
+          watermarkLines.forEach((line, idx) => {
+            const textX = boxX + pad;
+            const textY = boxY + pad + lineHeight * (idx + 0.7);
+            watermarkCtx.fillText(line, textX, textY);
+          });
+          watermarkCtx.restore();
+        }
+
+        // 手机优化：使用 blob 而不是 data URL，节省内存
+        canvas.toBlob(function(blob) {
+          if (!blob) {
+            showStatus("导出路线图失败：无法生成图片数据", true);
+            return;
+          }
+          
+          const now = new Date();
+          const stamp = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, "0") +
+            String(now.getDate()).padStart(2, "0") + "-" +
+            String(now.getHours()).padStart(2, "0") +
+            String(now.getMinutes()).padStart(2, "0") +
+            String(now.getSeconds()).padStart(2, "0");
+
+          const filename = "sstr-route-map-" + stamp + ".png";
+          
+          // 尝试原生分享（移动设备）
+          if (isMobile && navigator.share) {
+            navigator.share({
+              files: [new File([blob], filename, { type: "image/png" })],
+              title: "SSTR 2026 路线图",
+              text: "我的 SSTR 2026 路线"
+            }).catch(err => {
+              // 如果分享失败，使用下载方式
+              downloadBlob(blob, filename);
+            });
+          } else {
+            // 非移动设备或不支持分享，使用下载
+            downloadBlob(blob, filename);
+          }
+          
+          showStatus("已导出路线图 PNG", false);
+        }, "image/png", 0.92);
+      } catch (err) {
+        console.error("Export error:", err);
+        showStatus("导出路线图失败，请重试", true);
+      }
+    }
+
+    function downloadBlob(blob, filename) {
+      // 创建 blob URL 而不是 data URL，节省内存
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // 清理 blob URL
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    }
+
+    async function loadCheckpoints() {
+      try {
+        const res = await fetch("/sstr/point.json", { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error("network not ok");
+        }
+        const raw = await res.json();
+        if (!Array.isArray(raw)) {
+          throw new Error("invalid checkpoint json");
+        }
+
+        checkpointLayer = L.layerGroup();
+        goalLayer = L.layerGroup();
+        allCheckpointMarkers.length = 0;
+        allAvailableCheckpoints = []; // 重置检查点数据
+        // 性能优化：减少预加载的检查点数量
+        const preview = raw.slice(0, 3000);
+
+        preview.forEach((cp) => {
+          const lat = Number(cp.lat);
+          const lng = Number(cp.lon);
+          const hidden = String(cp.hidden || "0");
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+            return;
+          }
+          if (hidden === "1") {
+            return;
+          }
+          const category = getFilterCategoryFromCheckpoint(cp);
+          const markerColors = FILTER_CATEGORY_COLORS[category] || {
+            stroke: "#d66a34",
+            fill: "#ff8a57"
+          };
+
+          // 保存检查点数据以供自动生成使用
+          allAvailableCheckpoints.push({
+            lat: lat,
+            lng: lng,
+            name: cp.name || "无名点",
+            id: cp.id,
+            kind: cp.kind,
+            checkpoint: cp.checkpoint,
+            start_flag: cp.start_flag,
+            tachiyori_flag: cp.tachiyori_flag,
+            prefecture: cp.prefecture,
+            address: cp.address,
+            description: cp.description,
+            add_info: cp.add_info
+          });
+
+          if (category === "ゴール地点") {
+            const goalMarker = L.marker([lat, lng], {
+              icon: createGoalPointIcon(),
+              interactive: false,
+              bubblingMouseEvents: false
+            });
+
+            const goalHitMarker = L.circleMarker([lat, lng], {
+              radius: 14,
+              color: "#000000",
+              weight: 1,
+              opacity: 0.01,
+              fillColor: "#000000",
+              fillOpacity: 0.01,
+              interactive: true,
+              bubblingMouseEvents: false
+            });
+
+            const safeName = escapeHtml(cp.name || "无名点");
+            const safePrefecture = escapeHtml(cp.prefecture || "");
+            const safeAddress = escapeHtml(cp.address || "");
+            const safeCategory = escapeHtml(category);
+
+            goalHitMarker.bindPopup(
+              "<b>终点：" + safeName + "</b><br>" +
+              safePrefecture + " " + safeAddress +
+              "<br>分类：" + safeCategory +
+              "<button type=\"button\" class=\"add-goal-from-popup\">加入路线</button>"
+            );
+
+            // 性能优化：使用事件委托和防止重复监听
+            goalHitMarker.on("popupopen", function onPopupOpen() {
+              const popupEl = this.getPopup() && this.getPopup().getElement();
+              if (!popupEl) {
+                return;
+              }
+              const btn = popupEl.querySelector(".add-goal-from-popup");
+              if (!btn || btn.dataset.bound === "true") {
+                return;
+              }
+              btn.dataset.bound = "true";
+              btn.addEventListener("click", function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                addPoint(lat, lng, cp.name || "终点", {
+                  id: cp.id,
+                  kind: cp.kind,
+                  checkpoint: cp.checkpoint,
+                  start_flag: cp.start_flag,
+                  tachiyori_flag: cp.tachiyori_flag,
+                  prefecture: cp.prefecture,
+                  address: cp.address,
+                  description: cp.description,
+                  add_info: cp.add_info
+                });
+                showStatus("已添加终点到路线", false);
+                map.closePopup();
+              });
+            });
+
+            goalLayer.addLayer(L.layerGroup([goalMarker, goalHitMarker]));
+            return;
+          }
+
+          const marker = L.circleMarker([lat, lng], {
+            radius: 6,
+            color: markerColors.stroke,
+            fillColor: markerColors.fill,
+            fillOpacity: 0.88,
+            weight: 2,
+            interactive: true,
+            bubblingMouseEvents: false
+          });
+
+          const safeName = escapeHtml(cp.name || "无名点");
+          const safePrefecture = escapeHtml(cp.prefecture || "");
+          const safeAddress = escapeHtml(cp.address || "");
+          const safeCheckpointCategory = escapeHtml(getCheckpointCategory(cp));
+
+          marker.bindPopup(
+            "<b>" + safeName + "</b><br>" +
+            safePrefecture + " " + safeAddress +
+            "<br>分类：" + safeCheckpointCategory +
+            "<button type=\"button\" class=\"add-from-popup\">加入路线</button>"
+          );
+
+          // 性能优化：使用事件委托和防止重复监听
+          marker.on("popupopen", function onPopupOpen() {
+            const popupEl = this.getPopup() && this.getPopup().getElement();
+            if (!popupEl) {
+              return;
+            }
+            const btn = popupEl.querySelector(".add-from-popup");
+            if (!btn || btn.dataset.bound === "true") {
+              return;
+            }
+            btn.dataset.bound = "true";
+            btn.addEventListener("click", function(event) {
+              event.preventDefault();
+              event.stopPropagation();
+              addPoint(lat, lng, cp.name || "站点", {
+                id: cp.id,
+                kind: cp.kind,
+                checkpoint: cp.checkpoint,
+                start_flag: cp.start_flag,
+                tachiyori_flag: cp.tachiyori_flag,
+                prefecture: cp.prefecture,
+                address: cp.address,
+                description: cp.description,
+                add_info: cp.add_info
+              });
+              showStatus("已添加站点到路线", false);
+              map.closePopup();
+            });
+          });
+
+          allCheckpointMarkers.push({ marker: marker, category: category });
+        });
+
+        applyPointTypeFilter();
+        checkpointLayer.addTo(map);
+        goalLayer.addTo(map);
+        showStatus("点位数据已加载，可点击橙色点加入路线，终点已在地图中独立标出", false);
+      } catch (err) {
+        const isFileProtocol = window.location && window.location.protocol === "file:";
+        showStatus(
+          isFileProtocol
+            ? "point.json 加载失败：当前是直接打开本地 HTML。请改用本地服务器访问。"
+            : "point.json 加载失败，请刷新后重试。",
+          true
+        );
+      }
+    }
+
+    map.on("click", (e) => {
+      // 当没有路线点时，可以自由点击地图来设置起点
+      if (routePoints.length === 0) {
+        setStartPoint(e.latlng.lat, e.latlng.lng, "地图点击起点");
+        showStatus("已通过点击地图设置起点", false);
+        return;
+      }
+      showStatus("请点击地图上的站点点位来添加路线点", true);
+    });
+
+    typeFilterListEl.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
+        return;
+      }
+      const category = target.dataset.category;
+      if (!category) {
+        return;
+      }
+      if (target.checked) {
+        selectedCategories.add(category);
+      } else {
+        selectedCategories.delete(category);
+      }
+      applyPointTypeFilter();
+    });
+
+    document.getElementById("undoFabBtn").addEventListener("click", removeLastPoint);
+    document.getElementById("locateFabBtn").addEventListener("click", fitToRoute);
+    document.getElementById("exportMapBtn").addEventListener("click", exportRouteMapImage);
+    if (generateRouteBtnEl) {
+      generateRouteBtnEl.addEventListener("click", () => {
+        if (!generateRouteBtnEl.disabled) {
+          autoGenerateRoute();
+        }
+      });
+    }
+    if (togglePanelBtnEl) {
+      togglePanelBtnEl.addEventListener("click", () => {
+        const collapsed = panelEl.classList.contains("mobile-collapsed");
+        setPanelCollapsed(!collapsed);
+      });
+    }
+
+    if (expandScoreDetailsBtnEl) {
+      expandScoreDetailsBtnEl.addEventListener("click", () => {
+        const isHidden = scoreDetailsContainerEl.style.display === "none";
+        scoreDetailsContainerEl.style.display = isHidden ? "block" : "none";
+        expandScoreDetailsBtnEl.textContent = isHidden ? "▲ 收起详情" : "▼ 展开详情";
+      });
+    }
+
+    renderTypeFilters();
+    restoreRouteFromStorage();
+    renderTimeSummary();
+    loadCheckpoints();
+  </script>
+</body>
+</html>
