@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       { source: "/photo/100kb", destination: "/photo/100kb/index.html" },
       { source: "/photo/stitch", destination: "/photo/stitch/index.html" },
       { source: "/photo/watermark", destination: "/photo/watermark/index.html" },
+      { source: "/photo/about", destination: "/photo/about/index.html" },
     ];
   },
   images: {
