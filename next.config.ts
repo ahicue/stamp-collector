@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/sstr", destination: "/sstr/index.html" },
       { source: "/cosmos", destination: "/cosmos/index.html" },
+      { source: "/photo", destination: "/photo/index.html" },
     ];
   },
   images: {

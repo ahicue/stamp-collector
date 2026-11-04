@@ -13,7 +13,7 @@ export default function Home() {
       <div className="portal-wrap">
         <header className="portal-header">
           <a className="portal-logo" href="/" aria-label="Ahicue 首页"><span className="logo-symbol">✳</span><span>AHICUE<span className="logo-dot">.</span></span></a>
-          <nav aria-label="主导航" className="portal-nav"><a href="#worlds">探索</a><a href="/stamps">印章地图</a><a href="/sstr">SSTR</a><a href="mailto:y@ahicue.com">联系 ↗</a></nav>
+          <nav aria-label="主导航" className="portal-nav"><a href="#worlds">探索</a><a href="/stamps">印章地图</a><a href="/sstr">SSTR</a><a href="/photo">照片工具</a><a href="mailto:y@ahicue.com">联系 ↗</a></nav>
         </header>
         <main>
           <section className="portal-hero" aria-labelledby="hero-title">
