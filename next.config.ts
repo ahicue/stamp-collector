@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
       { source: "/photo/stitch", destination: "/photo/stitch/index.html" },
       { source: "/photo/watermark", destination: "/photo/watermark/index.html" },
       { source: "/photo/about", destination: "/photo/about/index.html" },
+      { source: "/photo/crop", destination: "/photo/crop/index.html" },
     ];
   },
   images: {
