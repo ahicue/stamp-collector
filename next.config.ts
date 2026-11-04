@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       { source: "/photo/watermark", destination: "/photo/watermark/index.html" },
       { source: "/photo/about", destination: "/photo/about/index.html" },
       { source: "/photo/crop", destination: "/photo/crop/index.html" },
+      { source: "/photo/batch", destination: "/photo/batch/index.html" },
     ];
   },
   images: {
